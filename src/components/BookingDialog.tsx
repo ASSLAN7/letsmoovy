@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, addHours, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, X, Car, Loader2, Check } from 'lucide-react';
+import { Calendar, Clock, MapPin, X, Car, Loader2, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -31,6 +31,13 @@ interface BookingDialogProps {
   onClose: () => void;
 }
 
+interface ExistingBooking {
+  id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
+
 const generateTimeSlots = () => {
   const slots = [];
   for (let hour = 0; hour < 24; hour++) {
@@ -47,9 +54,11 @@ const timeSlots = generateTimeSlots();
 const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
   
   const [startDate, setStartDate] = useState<Date>();
   const [startTime, setStartTime] = useState<string>();
@@ -57,6 +66,97 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
   const [endTime, setEndTime] = useState<string>();
 
   const pricePerMinute = parseFloat(vehicle.price.replace(',', '.').replace('€/min', ''));
+
+  // Fetch existing bookings for the vehicle
+  const fetchExistingBookings = useCallback(async () => {
+    const { data, error } = await supabase.rpc('get_vehicle_bookings', {
+      p_vehicle_id: vehicle.id,
+      p_from_date: new Date().toISOString()
+    });
+    
+    if (!error && data) {
+      setExistingBookings(data);
+    }
+  }, [vehicle.id]);
+
+  // Set up realtime subscription for booking changes
+  useEffect(() => {
+    if (!isOpen) return;
+
+    fetchExistingBookings();
+
+    const channel = supabase
+      .channel(`vehicle-bookings-${vehicle.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `vehicle_id=eq.${vehicle.id}`
+        },
+        () => {
+          fetchExistingBookings();
+          // Re-check availability if dates are selected
+          if (startDate && startTime && endDate && endTime) {
+            checkAvailability();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, vehicle.id, fetchExistingBookings]);
+
+  // Check availability when dates change
+  const checkAvailability = useCallback(async () => {
+    if (!startDate || !startTime || !endDate || !endTime) {
+      setIsAvailable(null);
+      return;
+    }
+
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(startDate);
+    startDateTime.setHours(startHour, startMinute, 0, 0);
+    
+    const endDateTime = new Date(endDate);
+    endDateTime.setHours(endHour, endMinute, 0, 0);
+
+    if (endDateTime <= startDateTime) {
+      setIsAvailable(null);
+      return;
+    }
+
+    setIsCheckingAvailability(true);
+
+    try {
+      const { data, error } = await supabase.rpc('check_vehicle_availability', {
+        p_vehicle_id: vehicle.id,
+        p_start_time: startDateTime.toISOString(),
+        p_end_time: endDateTime.toISOString()
+      });
+
+      if (error) {
+        console.error('Availability check error:', error);
+        setIsAvailable(null);
+      } else {
+        setIsAvailable(data);
+      }
+    } catch (err) {
+      console.error('Availability check failed:', err);
+      setIsAvailable(null);
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  }, [startDate, startTime, endDate, endTime, vehicle.id]);
+
+  useEffect(() => {
+    checkAvailability();
+  }, [checkAvailability]);
 
   const calculateTotalPrice = () => {
     if (!startDate || !startTime || !endDate || !endTime) return null;
@@ -90,6 +190,7 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
       return;
     }
 
+    // Final availability check before booking
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
     
@@ -102,6 +203,23 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
     setIsSubmitting(true);
     
     try {
+      // Double-check availability right before booking
+      const { data: availabilityCheck, error: availError } = await supabase.rpc('check_vehicle_availability', {
+        p_vehicle_id: vehicle.id,
+        p_start_time: startDateTime.toISOString(),
+        p_end_time: endDateTime.toISOString()
+      });
+
+      if (availError) throw availError;
+      
+      if (!availabilityCheck) {
+        toast.error('Dieser Zeitraum wurde soeben von jemand anderem gebucht. Bitte wähle einen anderen Zeitraum.');
+        setIsAvailable(false);
+        await fetchExistingBookings();
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase.from('bookings').insert({
         user_id: user.id,
         vehicle_id: vehicle.id,
@@ -150,13 +268,18 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
   };
 
   const handleClose = () => {
-    setStep(1);
     setStartDate(undefined);
     setStartTime(undefined);
     setEndDate(undefined);
     setEndTime(undefined);
     setBookingComplete(false);
+    setIsAvailable(null);
     onClose();
+  };
+
+  // Format existing bookings for display
+  const formatBookingTime = (isoString: string) => {
+    return format(new Date(isoString), "dd.MM. HH:mm", { locale: de });
   };
 
   if (!isOpen) return null;
@@ -240,6 +363,29 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
                 <MapPin size={18} className="text-primary" />
                 <span className="text-muted-foreground">{vehicle.address}</span>
               </div>
+
+              {/* Existing Bookings Warning */}
+              {existingBookings.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-muted/50 rounded-lg mb-4 text-sm"
+                >
+                  <p className="font-medium text-foreground mb-2">Bereits gebuchte Zeiträume:</p>
+                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                    {existingBookings.slice(0, 5).map((booking) => (
+                      <div key={booking.id} className="text-muted-foreground text-xs">
+                        {formatBookingTime(booking.start_time)} - {formatBookingTime(booking.end_time)}
+                      </div>
+                    ))}
+                    {existingBookings.length > 5 && (
+                      <div className="text-muted-foreground text-xs">
+                        + {existingBookings.length - 5} weitere
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Date/Time Selection */}
               <div className="space-y-4 mb-6">
@@ -338,8 +484,39 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
                 </div>
               </div>
 
+              {/* Availability Status */}
+              {(startDate && startTime && endDate && endTime) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    "p-3 rounded-lg mb-4 flex items-center gap-2",
+                    isCheckingAvailability && "bg-muted/50",
+                    isAvailable === true && "bg-primary/10",
+                    isAvailable === false && "bg-destructive/10"
+                  )}
+                >
+                  {isCheckingAvailability ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Verfügbarkeit wird geprüft...</span>
+                    </>
+                  ) : isAvailable === true ? (
+                    <>
+                      <Check className="w-4 h-4 text-primary" />
+                      <span className="text-sm text-primary">Fahrzeug ist verfügbar</span>
+                    </>
+                  ) : isAvailable === false ? (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-destructive" />
+                      <span className="text-sm text-destructive">Zeitraum bereits gebucht</span>
+                    </>
+                  ) : null}
+                </motion.div>
+              )}
+
               {/* Price Summary */}
-              {totalPrice && (
+              {totalPrice && isAvailable && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -360,10 +537,12 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
                 variant="hero"
                 className="w-full"
                 onClick={handleSubmit}
-                disabled={!startDate || !startTime || !endDate || !endTime || !totalPrice || isSubmitting}
+                disabled={!startDate || !startTime || !endDate || !endTime || !totalPrice || isSubmitting || isAvailable !== true}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isAvailable === false ? (
+                  'Zeitraum nicht verfügbar'
                 ) : (
                   'Jetzt buchen'
                 )}

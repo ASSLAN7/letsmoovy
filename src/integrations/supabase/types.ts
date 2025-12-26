@@ -103,7 +103,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_vehicle_availability: {
+        Args: {
+          p_end_time: string
+          p_exclude_booking_id?: string
+          p_start_time: string
+          p_vehicle_id: number
+        }
+        Returns: boolean
+      }
+      get_vehicle_bookings: {
+        Args: { p_from_date?: string; p_vehicle_id: number }
+        Returns: {
+          end_time: string
+          id: string
+          start_time: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
