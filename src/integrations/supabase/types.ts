@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          pickup_address: string
+          price_per_minute: number
+          start_time: string
+          status: string
+          total_price: number | null
+          updated_at: string
+          user_id: string
+          vehicle_category: string
+          vehicle_id: number
+          vehicle_name: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          pickup_address: string
+          price_per_minute: number
+          start_time: string
+          status?: string
+          total_price?: number | null
+          updated_at?: string
+          user_id: string
+          vehicle_category: string
+          vehicle_id: number
+          vehicle_name: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          pickup_address?: string
+          price_per_minute?: number
+          start_time?: string
+          status?: string
+          total_price?: number | null
+          updated_at?: string
+          user_id?: string
+          vehicle_category?: string
+          vehicle_id?: number
+          vehicle_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
