@@ -66,6 +66,9 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          driver_license_expiry: string | null
+          driver_license_issued_date: string | null
+          driver_license_number: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -74,6 +77,9 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          driver_license_expiry?: string | null
+          driver_license_issued_date?: string | null
+          driver_license_number?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -82,6 +88,9 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          driver_license_expiry?: string | null
+          driver_license_issued_date?: string | null
+          driver_license_number?: string | null
           email?: string | null
           full_name?: string | null
           id?: string

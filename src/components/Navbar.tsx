@@ -121,7 +121,10 @@ const Navbar = () => {
                     <CalendarDays className="mr-2 h-4 w-4" />
                     <span>Meine Buchungen</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => navigate('/profile')}
+                  >
                     <User className="mr-2 h-4 w-4" />
                     <span>Mein Profil</span>
                   </DropdownMenuItem>
