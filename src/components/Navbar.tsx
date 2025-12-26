@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Menu, X, LogOut, User } from "lucide-react";
+import { Menu, X, LogOut, User, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -17,13 +17,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, signOut } = useAuth();
 
+  const isHomePage = location.pathname === '/';
+
   const navLinks = [
-    { label: "Fahrzeuge", href: "#cars" },
-    { label: "So funktioniert's", href: "#how-it-works" },
-    { label: "Preise", href: "#pricing" },
-    { label: "Standorte", href: "#locations" },
+    { label: "Fahrzeuge", href: isHomePage ? "#cars" : "/#cars" },
+    { label: "So funktioniert's", href: isHomePage ? "#how-it-works" : "/#how-it-works" },
+    { label: "Preise", href: isHomePage ? "#pricing" : "/#pricing" },
+    { label: "Standorte", href: isHomePage ? "#locations" : "/#locations" },
   ];
 
   const handleSignOut = async () => {
@@ -110,7 +113,14 @@ const Navbar = () => {
                       </p>
                     </div>
                   </div>
-                  <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => navigate('/bookings')}
+                  >
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    <span>Meine Buchungen</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
                     <span>Mein Profil</span>
