@@ -117,6 +117,28 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
 
       if (error) throw error;
 
+      // Send confirmation email
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-booking-confirmation', {
+          body: {
+            email: user.email,
+            userName: user.user_metadata?.full_name || user.email?.split('@')[0],
+            vehicleName: vehicle.name,
+            vehicleCategory: vehicle.category,
+            startTime: startDateTime.toISOString(),
+            endTime: endDateTime.toISOString(),
+            pickupAddress: vehicle.address,
+            totalPrice: parseFloat(totalPrice),
+          },
+        });
+        
+        if (emailError) {
+          console.error('Email sending failed:', emailError);
+        }
+      } catch (emailErr) {
+        console.error('Email function error:', emailErr);
+      }
+
       setBookingComplete(true);
       toast.success('Buchung erfolgreich!');
     } catch (error) {
