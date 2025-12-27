@@ -118,7 +118,7 @@ const VehicleMap = () => {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/dark-v11',
-      center: [13.405, 52.52], // Berlin
+      center: [6.7763, 51.2277], // Düsseldorf
       zoom: 12,
       pitch: 45,
     });
