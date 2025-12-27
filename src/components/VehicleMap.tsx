@@ -6,76 +6,7 @@ import { Car, Battery, MapPin, Clock, X, Navigation, Search, Loader2 } from 'luc
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-
-// Mock vehicle data - in production this would come from your backend
-const mockVehicles = [
-  {
-    id: 1,
-    name: 'Urban E',
-    category: 'Compact',
-    coordinates: [13.405, 52.52] as [number, number],
-    battery: 85,
-    range: '153 km',
-    price: '0,29€/min',
-    available: true,
-    address: 'Alexanderplatz 1, Berlin'
-  },
-  {
-    id: 2,
-    name: 'Luxury S',
-    category: 'Sedan',
-    coordinates: [13.377, 52.516] as [number, number],
-    battery: 72,
-    range: '324 km',
-    price: '0,49€/min',
-    available: true,
-    address: 'Brandenburger Tor, Berlin'
-  },
-  {
-    id: 3,
-    name: 'Family X',
-    category: 'SUV',
-    coordinates: [13.429, 52.523] as [number, number],
-    battery: 45,
-    range: '171 km',
-    price: '0,59€/min',
-    available: true,
-    address: 'Friedrichshain, Berlin'
-  },
-  {
-    id: 4,
-    name: 'Urban E',
-    category: 'Compact',
-    coordinates: [13.390, 52.507] as [number, number],
-    battery: 92,
-    range: '165 km',
-    price: '0,29€/min',
-    available: false,
-    address: 'Checkpoint Charlie, Berlin'
-  },
-  {
-    id: 5,
-    name: 'Luxury S',
-    category: 'Sedan',
-    coordinates: [13.365, 52.530] as [number, number],
-    battery: 100,
-    range: '450 km',
-    price: '0,49€/min',
-    available: true,
-    address: 'Hauptbahnhof, Berlin'
-  },
-  {
-    id: 6,
-    name: 'Urban E',
-    category: 'Compact',
-    coordinates: [13.445, 52.510] as [number, number],
-    battery: 67,
-    range: '120 km',
-    price: '0,29€/min',
-    available: true,
-    address: 'Kreuzberg, Berlin'
-  },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 interface Vehicle {
   id: number;
@@ -83,8 +14,8 @@ interface Vehicle {
   category: string;
   coordinates: [number, number];
   battery: number;
-  range: string;
-  price: string;
+  range_km: number;
+  price_per_minute: number;
   available: boolean;
   address: string;
 }
@@ -103,7 +34,8 @@ const VehicleMap = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
   const [isMapReady, setIsMapReady] = useState(false);
-  const [showTokenInput, setShowTokenInput] = useState(true);
+  const [isLoadingToken, setIsLoadingToken] = useState(true);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,6 +43,72 @@ const VehicleMap = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch Mapbox token from edge function
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-mapbox-token');
+        
+        if (error) throw error;
+        
+        if (data?.token) {
+          setMapboxToken(data.token);
+        }
+      } catch (err) {
+        console.error('Error fetching Mapbox token:', err);
+      } finally {
+        setIsLoadingToken(false);
+      }
+    };
+
+    fetchToken();
+  }, []);
+
+  // Fetch vehicles from database
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*');
+
+        if (error) throw error;
+
+        const mappedVehicles: Vehicle[] = (data || []).map(v => ({
+          id: v.id,
+          name: v.name,
+          category: v.category,
+          coordinates: [v.longitude, v.latitude] as [number, number],
+          battery: v.battery,
+          range_km: v.range_km,
+          price_per_minute: v.price_per_minute,
+          available: v.available,
+          address: v.address,
+        }));
+
+        setVehicles(mappedVehicles);
+      } catch (err) {
+        console.error('Error fetching vehicles:', err);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
+
+  // Initialize map when token is available
+  useEffect(() => {
+    if (mapboxToken && !map.current && vehicles.length > 0) {
+      initializeMap(mapboxToken);
+    }
+  }, [mapboxToken, vehicles]);
+
+  // Update markers when vehicles change
+  useEffect(() => {
+    if (isMapReady && vehicles.length > 0) {
+      addVehicleMarkers();
+    }
+  }, [isMapReady, vehicles]);
 
   const initializeMap = (token: string) => {
     if (!mapContainer.current || map.current) return;
@@ -156,7 +154,7 @@ const VehicleMap = () => {
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    mockVehicles.forEach((vehicle) => {
+    vehicles.forEach((vehicle) => {
       // Create custom marker element
       const el = document.createElement('div');
       el.className = 'vehicle-marker';
@@ -303,7 +301,7 @@ const VehicleMap = () => {
 
   // Find vehicles within 2km of a location
   const findNearbyVehicles = (center: [number, number]): Vehicle[] => {
-    return mockVehicles.filter(v => 
+    return vehicles.filter(v => 
       v.available && getDistance(center, v.coordinates) <= 2
     );
   };
@@ -312,14 +310,6 @@ const VehicleMap = () => {
     e.preventDefault();
     if (searchQuery.trim().length >= 3) {
       searchLocation(searchQuery);
-    }
-  };
-
-  const handleTokenSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mapboxToken.trim()) {
-      setShowTokenInput(false);
-      initializeMap(mapboxToken.trim());
     }
   };
 
@@ -332,7 +322,7 @@ const VehicleMap = () => {
     };
   }, []);
 
-  const availableCount = mockVehicles.filter(v => v.available).length;
+  const availableCount = vehicles.filter(v => v.available).length;
 
   return (
     <section id="locations" className="py-24 relative">
@@ -364,37 +354,24 @@ const VehicleMap = () => {
         >
           {/* Map Container */}
           <div className="relative h-[600px] rounded-2xl overflow-hidden glass">
-            {showTokenInput ? (
+            {isLoadingToken ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-card/95 backdrop-blur-sm z-10">
+                <div className="text-center">
+                  <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground">Karte wird geladen...</p>
+                </div>
+              </div>
+            ) : !mapboxToken ? (
               <div className="absolute inset-0 flex items-center justify-center bg-card/95 backdrop-blur-sm z-10">
                 <div className="max-w-md w-full p-8 text-center">
                   <div className="w-16 h-16 rounded-full gradient-accent mx-auto mb-6 flex items-center justify-center">
                     <MapPin className="w-8 h-8 text-primary-foreground" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-4">Mapbox Token benötigt</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Um die interaktive Karte zu nutzen, benötigst du einen Mapbox Public Token. 
-                    Du findest diesen in deinem{' '}
-                    <a 
-                      href="https://mapbox.com/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Mapbox Dashboard
-                    </a>.
+                  <h3 className="text-2xl font-bold mb-4">Karte nicht verfügbar</h3>
+                  <p className="text-muted-foreground">
+                    Die Kartenansicht ist derzeit nicht konfiguriert. 
+                    Bitte kontaktiere den Administrator.
                   </p>
-                  <form onSubmit={handleTokenSubmit} className="space-y-4">
-                    <Input
-                      type="text"
-                      placeholder="pk.eyJ1Ijoi..."
-                      value={mapboxToken}
-                      onChange={(e) => setMapboxToken(e.target.value)}
-                      className="bg-secondary border-border"
-                    />
-                    <Button type="submit" variant="hero" className="w-full">
-                      Karte laden
-                    </Button>
-                  </form>
                 </div>
               </div>
             ) : null}
@@ -516,11 +493,11 @@ const VehicleMap = () => {
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Navigation size={16} className="text-primary" />
-                    <span className="text-muted-foreground">Reichweite: {selectedVehicle.range}</span>
+                    <span className="text-muted-foreground">Reichweite: {selectedVehicle.range_km} km</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <Clock size={16} className="text-primary" />
-                    <span className="text-muted-foreground">{selectedVehicle.price}</span>
+                    <span className="text-muted-foreground">{selectedVehicle.price_per_minute.toFixed(2)}€/min</span>
                   </div>
                 </div>
 
@@ -533,7 +510,7 @@ const VehicleMap = () => {
                     {selectedVehicle.available ? 'Verfügbar' : 'Gebucht'}
                   </span>
                   <span className="text-2xl font-bold gradient-text">
-                    {selectedVehicle.price.split('/')[0]}
+                    {selectedVehicle.price_per_minute.toFixed(2)}€
                     <span className="text-sm text-muted-foreground">/min</span>
                   </span>
                 </div>
