@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Camera, Loader2, X, Download, ExternalLink } from 'lucide-react';
+import { Camera, Loader2, X, Download, ExternalLink, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface BookingPhoto {
   id: string;
@@ -31,6 +32,7 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
   const [photos, setPhotos] = useState<BookingPhoto[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && bookingId) {
@@ -55,6 +57,36 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
       console.error('Error fetching photos:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (photoId: string, photoUrl: string) => {
+    if (!confirm('Foto wirklich löschen?')) return;
+    
+    setDeletingId(photoId);
+    try {
+      // Extract file path from URL for storage deletion
+      const urlParts = photoUrl.split('/vehicle-photos/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        await supabase.storage.from('vehicle-photos').remove([filePath]);
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from('booking_photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) throw error;
+
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+      toast.success('Foto gelöscht');
+    } catch (err) {
+      console.error('Error deleting photo:', err);
+      toast.error('Fehler beim Löschen');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -134,6 +166,19 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
                         className="h-8 w-8"
                       >
                         <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(photo.id, photo.photo_url)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        disabled={deletingId === photo.id}
+                      >
+                        {deletingId === photo.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                     
