@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Menu, X, LogOut, User, CalendarDays } from "lucide-react";
+import { Menu, X, LogOut, User, CalendarDays, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -17,8 +18,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, loading, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const isHomePage = location.pathname === '/';
 
@@ -128,6 +129,15 @@ const Navbar = () => {
                     <User className="mr-2 h-4 w-4" />
                     <span>Mein Profil</span>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem 
+                      className="cursor-pointer"
+                      onClick={() => navigate('/admin')}
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>Admin</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer text-destructive focus:text-destructive"
