@@ -20,7 +20,8 @@ import {
   Shield,
   Mail,
   UserCircle,
-  BarChart3
+  BarChart3,
+  Camera
 } from 'lucide-react';
 import { Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import AdminCharts from '@/components/AdminCharts';
 import AdminSupportChat from '@/components/AdminSupportChat';
+import BookingPhotosDialog from '@/components/BookingPhotosDialog';
 
 interface Booking {
   id: string;
@@ -129,6 +131,10 @@ const Admin = () => {
     address: '',
   });
   const [savingVehicle, setSavingVehicle] = useState(false);
+  
+  // Photo dialog state
+  const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
+  const [selectedBookingForPhotos, setSelectedBookingForPhotos] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -571,6 +577,18 @@ const Admin = () => {
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedBookingForPhotos({ id: booking.id, name: booking.vehicle_name });
+                                setPhotosDialogOpen(true);
+                              }}
+                              title="Rückgabe-Fotos anzeigen"
+                            >
+                              <Camera className="w-4 h-4" />
+                            </Button>
+                            
                             <Select 
                               value={booking.status} 
                               onValueChange={(value) => updateBookingStatus(booking.id, value)}
@@ -921,6 +939,14 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Booking Photos Dialog */}
+      <BookingPhotosDialog
+        bookingId={selectedBookingForPhotos?.id || null}
+        bookingName={selectedBookingForPhotos?.name || ''}
+        open={photosDialogOpen}
+        onOpenChange={setPhotosDialogOpen}
+      />
     </div>
   );
 };
