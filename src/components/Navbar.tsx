@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import logoImage from "@/assets/logo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -65,8 +66,9 @@ const Navbar = () => {
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <a href="/" className="text-2xl font-bold gradient-text">
-            MOOVY
+          <a href="/" className="flex items-center gap-2">
+            <img src={logoImage} alt="MOOVY Logo" className="h-10 w-10" />
+            <span className="text-2xl font-bold gradient-text">MOOVY</span>
           </a>
 
           {/* Desktop Navigation */}
