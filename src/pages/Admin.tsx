@@ -22,6 +22,7 @@ import {
   UserCircle,
   BarChart3
 } from 'lucide-react';
+import { Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import AdminCharts from '@/components/AdminCharts';
+import AdminSupportChat from '@/components/AdminSupportChat';
 
 interface Booking {
   id: string;
@@ -513,6 +515,10 @@ const Admin = () => {
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Statistiken
               </TabsTrigger>
+              <TabsTrigger value="support" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Headphones className="w-4 h-4 mr-2" />
+                Support
+              </TabsTrigger>
             </TabsList>
 
             {/* Bookings Tab */}
@@ -768,6 +774,11 @@ const Admin = () => {
             {/* Analytics Tab */}
             <TabsContent value="analytics">
               <AdminCharts bookings={bookings} />
+            </TabsContent>
+
+            {/* Support Tab */}
+            <TabsContent value="support">
+              <AdminSupportChat />
             </TabsContent>
           </Tabs>
         </motion.div>

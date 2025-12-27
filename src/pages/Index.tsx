@@ -6,6 +6,7 @@ import VehicleMap from "@/components/VehicleMap";
 import Pricing from "@/components/Pricing";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
+import SupportChat from "@/components/SupportChat";
 
 const Index = () => {
   return (
@@ -18,6 +19,7 @@ const Index = () => {
       <Pricing />
       <CTA />
       <Footer />
+      <SupportChat />
     </div>
   );
 };
