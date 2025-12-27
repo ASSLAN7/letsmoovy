@@ -21,7 +21,9 @@ import {
   Mail,
   UserCircle,
   BarChart3,
-  Camera
+  Camera,
+  Star,
+  MessageSquare
 } from 'lucide-react';
 import { Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -96,6 +98,23 @@ interface UserProfile {
   isAdmin: boolean;
 }
 
+interface Review {
+  id: string;
+  vehicle_id: number;
+  booking_id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  };
+  vehicles?: {
+    name: string;
+  };
+}
+
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   confirmed: { label: 'Bestätigt', variant: 'default' },
   active: { label: 'Aktiv', variant: 'secondary' },
@@ -111,9 +130,11 @@ const Admin = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(true);
   
   // Vehicle dialog state
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
@@ -147,6 +168,7 @@ const Admin = () => {
       fetchBookings();
       fetchVehicles();
       fetchUsers();
+      fetchReviews();
     }
   }, [isAdmin]);
 
@@ -232,6 +254,59 @@ const Admin = () => {
       toast.error('Fehler beim Laden der Nutzer');
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('vehicle_reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (reviewsError) throw reviewsError;
+
+      // Fetch profiles and vehicles for reviews
+      const userIds = [...new Set(reviewsData?.map(r => r.user_id) || [])];
+      const vehicleIds = [...new Set(reviewsData?.map(r => r.vehicle_id) || [])];
+
+      const [{ data: profilesData }, { data: vehiclesData }] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, email').in('id', userIds),
+        supabase.from('vehicles').select('id, name').in('id', vehicleIds)
+      ]);
+
+      const reviewsWithDetails: Review[] = (reviewsData || []).map(review => ({
+        ...review,
+        profiles: profilesData?.find(p => p.id === review.user_id) || null,
+        vehicles: vehiclesData?.find(v => v.id === review.vehicle_id) || null
+      }));
+
+      setReviews(reviewsWithDetails);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      toast.error('Fehler beim Laden der Bewertungen');
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const deleteReview = async (reviewId: string) => {
+    if (!confirm('Bewertung wirklich löschen?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('vehicle_reviews')
+        .delete()
+        .eq('id', reviewId);
+
+      if (error) throw error;
+      
+      setReviews(prev => prev.filter(r => r.id !== reviewId));
+      toast.success('Bewertung gelöscht');
+    } catch (err) {
+      console.error('Error deleting review:', err);
+      toast.error('Fehler beim Löschen');
     }
   };
 
@@ -521,6 +596,10 @@ const Admin = () => {
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Statistiken
               </TabsTrigger>
+              <TabsTrigger value="reviews" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Star className="w-4 h-4 mr-2" />
+                Bewertungen
+              </TabsTrigger>
               <TabsTrigger value="support" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Headphones className="w-4 h-4 mr-2" />
                 Support
@@ -792,6 +871,74 @@ const Admin = () => {
             {/* Analytics Tab */}
             <TabsContent value="analytics">
               <AdminCharts bookings={bookings} />
+            </TabsContent>
+
+            {/* Reviews Tab */}
+            <TabsContent value="reviews" className="space-y-4">
+              {loadingReviews ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Keine Bewertungen vorhanden
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review, index) => (
+                    <motion.div
+                      key={review.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="glass rounded-xl p-4"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold">{review.vehicles?.name || 'Unbekanntes Fahrzeug'}</h3>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <p>
+                              <UserCircle className="w-4 h-4 inline mr-1" />
+                              {review.profiles?.full_name || review.profiles?.email || 'Unbekannt'}
+                            </p>
+                            <p>
+                              <Calendar className="w-4 h-4 inline mr-1" />
+                              {format(new Date(review.created_at), "dd.MM.yyyy HH:mm", { locale: de })}
+                            </p>
+                            {review.comment && (
+                              <p className="mt-2 text-foreground bg-secondary/50 rounded-lg p-3">
+                                <MessageSquare className="w-4 h-4 inline mr-1" />
+                                {review.comment}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => deleteReview(review.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             {/* Support Tab */}
