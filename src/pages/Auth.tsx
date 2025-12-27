@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowLeft, Loader2, Car } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import logoImage from '@/assets/logo.png';
 
 // Validation schemas
 const emailSchema = z.string().email('Ungültige E-Mail-Adresse');
@@ -147,8 +148,9 @@ const Auth = () => {
           </button>
 
           {/* Logo */}
-          <a href="/" className="text-3xl font-bold gradient-text inline-block mb-2">
-            MOOVY
+          <a href="/" className="flex items-center gap-2 mb-2">
+            <img src={logoImage} alt="MOOVY Logo" className="h-10 w-10" />
+            <span className="text-3xl font-bold gradient-text">MOOVY</span>
           </a>
           
           <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -302,8 +304,8 @@ const Auth = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-center"
           >
-            <div className="w-32 h-32 rounded-full gradient-accent mx-auto mb-8 flex items-center justify-center glow-strong">
-              <Car className="w-16 h-16 text-primary-foreground" />
+            <div className="w-32 h-32 rounded-full bg-background/20 backdrop-blur-sm mx-auto mb-8 flex items-center justify-center glow-strong p-4">
+              <img src={logoImage} alt="MOOVY" className="w-20 h-20 object-contain" />
             </div>
             <h2 className="text-3xl font-bold text-foreground mb-4">
               Mobilität neu gedacht

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin } from "lucide-react";
+import logoImage from "@/assets/logo.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -31,8 +32,9 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <a href="/" className="text-3xl font-bold gradient-text inline-block mb-4">
-              MOOVY
+            <a href="/" className="flex items-center gap-2 mb-4">
+              <img src={logoImage} alt="MOOVY Logo" className="h-10 w-10" />
+              <span className="text-3xl font-bold gradient-text">MOOVY</span>
             </a>
             <p className="text-muted-foreground mb-6 max-w-sm">
               Die Zukunft der urbanen Mobilität. Nachhaltig, flexibel und immer in deiner Nähe.
