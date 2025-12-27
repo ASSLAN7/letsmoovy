@@ -56,6 +56,7 @@ export type Database = {
           id: string
           pickup_address: string
           price_per_minute: number
+          reminder_sent: boolean
           start_time: string
           status: string
           total_price: number | null
@@ -71,6 +72,7 @@ export type Database = {
           id?: string
           pickup_address: string
           price_per_minute: number
+          reminder_sent?: boolean
           start_time: string
           status?: string
           total_price?: number | null
@@ -86,6 +88,7 @@ export type Database = {
           id?: string
           pickup_address?: string
           price_per_minute?: number
+          reminder_sent?: boolean
           start_time?: string
           status?: string
           total_price?: number | null
