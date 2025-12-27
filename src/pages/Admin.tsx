@@ -16,7 +16,10 @@ import {
   Plus,
   MapPin,
   Battery,
-  Euro
+  Euro,
+  Shield,
+  Mail,
+  UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -78,6 +81,15 @@ interface Vehicle {
   image_url: string | null;
 }
 
+interface UserProfile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  isAdmin: boolean;
+}
+
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   confirmed: { label: 'Bestätigt', variant: 'default' },
   active: { label: 'Aktiv', variant: 'secondary' },
@@ -92,8 +104,10 @@ const Admin = () => {
   
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   
   // Vehicle dialog state
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
@@ -122,6 +136,7 @@ const Admin = () => {
     if (isAdmin) {
       fetchBookings();
       fetchVehicles();
+      fetchUsers();
     }
   }, [isAdmin]);
 
@@ -173,6 +188,69 @@ const Admin = () => {
       toast.error('Fehler beim Laden der Fahrzeuge');
     } finally {
       setLoadingVehicles(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      // Fetch all profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Fetch all admin roles
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('role', 'admin');
+
+      const adminUserIds = new Set(rolesData?.map(r => r.user_id) || []);
+
+      // Combine profiles with admin status
+      const usersWithRoles: UserProfile[] = (profilesData || []).map(profile => ({
+        ...profile,
+        isAdmin: adminUserIds.has(profile.id)
+      }));
+
+      setUsers(usersWithRoles);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      toast.error('Fehler beim Laden der Nutzer');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const toggleAdminRole = async (userId: string, makeAdmin: boolean) => {
+    try {
+      if (makeAdmin) {
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: 'admin' as const });
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .eq('role', 'admin');
+
+        if (error) throw error;
+      }
+
+      setUsers(prev => prev.map(u =>
+        u.id === userId ? { ...u, isAdmin: makeAdmin } : u
+      ));
+      
+      toast.success(makeAdmin ? 'Admin-Rechte erteilt' : 'Admin-Rechte entzogen');
+    } catch (err) {
+      console.error('Error updating role:', err);
+      toast.error('Fehler beim Aktualisieren der Rolle');
     }
   };
 
@@ -373,7 +451,7 @@ const Admin = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             <div className="glass rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <Calendar className="w-5 h-5 text-primary" />
@@ -387,6 +465,13 @@ const Admin = () => {
                 <span className="text-muted-foreground">Fahrzeuge</span>
               </div>
               <p className="text-2xl font-bold mt-2">{vehicles.length}</p>
+            </div>
+            <div className="glass rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-primary" />
+                <span className="text-muted-foreground">Nutzer</span>
+              </div>
+              <p className="text-2xl font-bold mt-2">{users.length}</p>
             </div>
             <div className="glass rounded-xl p-4">
               <div className="flex items-center gap-3">
@@ -417,6 +502,10 @@ const Admin = () => {
               <TabsTrigger value="vehicles" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Car className="w-4 h-4 mr-2" />
                 Fahrzeuge
+              </TabsTrigger>
+              <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Users className="w-4 h-4 mr-2" />
+                Nutzer
               </TabsTrigger>
             </TabsList>
 
@@ -582,6 +671,86 @@ const Admin = () => {
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Users Tab */}
+            <TabsContent value="users" className="space-y-4">
+              {loadingUsers ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : users.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Keine Nutzer vorhanden
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {users.map((userProfile, index) => (
+                    <motion.div
+                      key={userProfile.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="glass rounded-xl p-4"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
+                            {userProfile.avatar_url ? (
+                              <img 
+                                src={userProfile.avatar_url} 
+                                alt="" 
+                                className="w-14 h-14 rounded-full object-cover"
+                              />
+                            ) : (
+                              <UserCircle className="w-8 h-8 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold">
+                                {userProfile.full_name || 'Unbekannt'}
+                              </h3>
+                              {userProfile.isAdmin && (
+                                <Badge variant="default" className="bg-primary">
+                                  <Shield className="w-3 h-3 mr-1" />
+                                  Admin
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Mail className="w-4 h-4" />
+                              {userProfile.email || 'Keine E-Mail'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                          <span>
+                            Registriert: {format(new Date(userProfile.created_at), "dd.MM.yyyy", { locale: de })}
+                          </span>
+                          <span>
+                            Buchungen: {bookings.filter(b => b.user_id === userProfile.id).length}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <Switch 
+                              checked={userProfile.isAdmin}
+                              onCheckedChange={(checked) => toggleAdminRole(userProfile.id, checked)}
+                              disabled={userProfile.id === user?.id}
+                            />
+                            <span className="text-sm">
+                              Admin
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
