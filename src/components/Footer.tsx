@@ -19,9 +19,9 @@ const Footer = () => {
       { label: "Presse", href: "#" },
     ],
     legal: [
-      { label: "AGB", href: "#" },
-      { label: "Datenschutz", href: "#" },
-      { label: "Impressum", href: "#" },
+      { label: "AGB", href: "/agb" },
+      { label: "Datenschutz", href: "/datenschutz" },
+      { label: "Impressum", href: "/impressum" },
       { label: "Cookie-Einstellungen", href: "#" },
     ],
   };
