@@ -112,6 +112,9 @@ const Bookings = () => {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
     try {
       const { error } = await supabase
         .from('bookings')
@@ -119,6 +122,23 @@ const Bookings = () => {
         .eq('id', bookingId);
 
       if (error) throw error;
+
+      // Send cancellation email
+      try {
+        await supabase.functions.invoke('send-cancellation-email', {
+          body: {
+            email: user?.email,
+            userName: user?.user_metadata?.full_name || user?.email?.split('@')[0],
+            vehicleName: booking.vehicle_name,
+            vehicleCategory: booking.vehicle_category,
+            startTime: booking.start_time,
+            endTime: booking.end_time,
+            pickupAddress: booking.pickup_address,
+          },
+        });
+      } catch (emailErr) {
+        console.error('Cancellation email error:', emailErr);
+      }
 
       toast.success('Buchung storniert');
       fetchBookings();
