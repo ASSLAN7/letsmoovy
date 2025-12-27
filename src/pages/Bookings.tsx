@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { 
   Car, Calendar, Clock, MapPin, ArrowLeft, 
-  Loader2, XCircle, CheckCircle, AlertCircle, Camera
+  Loader2, XCircle, CheckCircle, AlertCircle, Camera, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import VehicleReturnPhoto from '@/components/VehicleReturnPhoto';
+import VehiclePickupPhoto from '@/components/VehiclePickupPhoto';
 
 interface Booking {
   id: string;
@@ -58,6 +59,7 @@ const Bookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [pickupDialogOpen, setPickupDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
@@ -111,6 +113,11 @@ const Bookings = () => {
     setReturnDialogOpen(true);
   };
 
+  const handlePickupVehicle = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setPickupDialogOpen(true);
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -119,10 +126,16 @@ const Bookings = () => {
     );
   }
 
-  // Active bookings that can be returned (started but not ended)
-  const activeBookings = bookings.filter(b => 
-    (b.status === 'confirmed' || b.status === 'active') && 
+  // Bookings ready for pickup (confirmed and start time has passed)
+  const readyForPickup = bookings.filter(b => 
+    b.status === 'confirmed' && 
     new Date(b.start_time) <= new Date() &&
+    new Date(b.end_time) >= new Date()
+  );
+
+  // Active bookings that can be returned
+  const activeBookings = bookings.filter(b => 
+    b.status === 'active' && 
     new Date(b.end_time) >= new Date()
   );
   
@@ -180,6 +193,27 @@ const Bookings = () => {
             </motion.div>
           ) : (
             <div className="space-y-8">
+              {/* Ready for Pickup - Need to take photos before starting */}
+              {readyForPickup.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Play className="w-5 h-5 text-primary" />
+                    Bereit zur Abholung
+                  </h2>
+                  <div className="grid gap-4">
+                    {readyForPickup.map((booking, index) => (
+                      <BookingCard 
+                        key={booking.id} 
+                        booking={booking} 
+                        index={index}
+                        onPickup={() => handlePickupVehicle(booking)}
+                        showPickup
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Active Bookings - Can be returned */}
               {activeBookings.length > 0 && (
                 <section>
@@ -270,6 +304,20 @@ const Bookings = () => {
           onComplete={fetchBookings}
         />
       )}
+
+      {/* Vehicle Pickup Photo Dialog */}
+      {selectedBooking && (
+        <VehiclePickupPhoto
+          bookingId={selectedBooking.id}
+          vehicleName={selectedBooking.vehicle_name}
+          isOpen={pickupDialogOpen}
+          onClose={() => {
+            setPickupDialogOpen(false);
+            setSelectedBooking(null);
+          }}
+          onComplete={fetchBookings}
+        />
+      )}
     </div>
   );
 };
@@ -279,15 +327,19 @@ const BookingCard = ({
   index, 
   onCancel,
   onReturn,
+  onPickup,
   showCancel = false,
   showReturn = false,
+  showPickup = false,
 }: { 
   booking: Booking; 
   index: number;
   onCancel?: () => void;
   onReturn?: () => void;
+  onPickup?: () => void;
   showCancel?: boolean;
   showReturn?: boolean;
+  showPickup?: boolean;
 }) => {
   const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.confirmed;
   const StatusIcon = status.icon;
@@ -347,6 +399,17 @@ const BookingCard = ({
 
         {/* Actions */}
         <div className="flex gap-2">
+          {showPickup && onPickup && (
+            <Button
+              variant="hero"
+              size="sm"
+              onClick={onPickup}
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Fahrt starten
+            </Button>
+          )}
+
           {showReturn && onReturn && (
             <Button
               variant="hero"
