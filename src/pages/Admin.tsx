@@ -19,7 +19,8 @@ import {
   Euro,
   Shield,
   Mail,
-  UserCircle
+  UserCircle,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -48,6 +49,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
+import AdminCharts from '@/components/AdminCharts';
 
 interface Booking {
   id: string;
@@ -507,6 +509,10 @@ const Admin = () => {
                 <Users className="w-4 h-4 mr-2" />
                 Nutzer
               </TabsTrigger>
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Statistiken
+              </TabsTrigger>
             </TabsList>
 
             {/* Bookings Tab */}
@@ -757,6 +763,11 @@ const Admin = () => {
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics">
+              <AdminCharts bookings={bookings} />
             </TabsContent>
           </Tabs>
         </motion.div>
