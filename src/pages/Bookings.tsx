@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { 
   Car, Calendar, Clock, MapPin, ArrowLeft, 
-  Loader2, XCircle, CheckCircle, AlertCircle 
+  Loader2, XCircle, CheckCircle, AlertCircle, Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import VehicleReturnPhoto from '@/components/VehicleReturnPhoto';
 
 interface Booking {
   id: string;
@@ -56,6 +57,8 @@ const Bookings = () => {
   const { user, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -103,6 +106,11 @@ const Bookings = () => {
     }
   };
 
+  const handleReturnVehicle = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setReturnDialogOpen(true);
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -111,11 +119,18 @@ const Bookings = () => {
     );
   }
 
+  // Active bookings that can be returned (started but not ended)
+  const activeBookings = bookings.filter(b => 
+    (b.status === 'confirmed' || b.status === 'active') && 
+    new Date(b.start_time) <= new Date() &&
+    new Date(b.end_time) >= new Date()
+  );
+  
   const upcomingBookings = bookings.filter(b => 
     b.status === 'confirmed' && new Date(b.start_time) > new Date()
   );
   const pastBookings = bookings.filter(b => 
-    b.status === 'completed' || new Date(b.end_time) < new Date()
+    b.status === 'completed' || (b.status !== 'cancelled' && new Date(b.end_time) < new Date())
   );
   const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
 
@@ -165,6 +180,27 @@ const Bookings = () => {
             </motion.div>
           ) : (
             <div className="space-y-8">
+              {/* Active Bookings - Can be returned */}
+              {activeBookings.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-yellow-500" />
+                    Aktive Buchungen
+                  </h2>
+                  <div className="grid gap-4">
+                    {activeBookings.map((booking, index) => (
+                      <BookingCard 
+                        key={booking.id} 
+                        booking={booking} 
+                        index={index}
+                        onReturn={() => handleReturnVehicle(booking)}
+                        showReturn
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Upcoming Bookings */}
               {upcomingBookings.length > 0 && (
                 <section>
@@ -220,6 +256,20 @@ const Bookings = () => {
       </main>
 
       <Footer />
+
+      {/* Vehicle Return Photo Dialog */}
+      {selectedBooking && (
+        <VehicleReturnPhoto
+          bookingId={selectedBooking.id}
+          vehicleName={selectedBooking.vehicle_name}
+          isOpen={returnDialogOpen}
+          onClose={() => {
+            setReturnDialogOpen(false);
+            setSelectedBooking(null);
+          }}
+          onComplete={fetchBookings}
+        />
+      )}
     </div>
   );
 };
@@ -228,12 +278,16 @@ const BookingCard = ({
   booking, 
   index, 
   onCancel,
-  showCancel = false 
+  onReturn,
+  showCancel = false,
+  showReturn = false,
 }: { 
   booking: Booking; 
   index: number;
   onCancel?: () => void;
+  onReturn?: () => void;
   showCancel?: boolean;
+  showReturn?: boolean;
 }) => {
   const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.confirmed;
   const StatusIcon = status.icon;
@@ -291,17 +345,30 @@ const BookingCard = ({
           </div>
         </div>
 
-        {/* Cancel Button */}
-        {showCancel && onCancel && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={onCancel}
-          >
-            Stornieren
-          </Button>
-        )}
+        {/* Actions */}
+        <div className="flex gap-2">
+          {showReturn && onReturn && (
+            <Button
+              variant="hero"
+              size="sm"
+              onClick={onReturn}
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              Zurückgeben
+            </Button>
+          )}
+          
+          {showCancel && onCancel && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onCancel}
+            >
+              Stornieren
+            </Button>
+          )}
+        </div>
       </div>
     </motion.div>
   );
