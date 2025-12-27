@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { 
   Car, Calendar, Clock, MapPin, ArrowLeft, 
-  Loader2, XCircle, CheckCircle, AlertCircle, Camera, Play
+  Loader2, XCircle, CheckCircle, AlertCircle, Camera, Play, Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import VehicleReturnPhoto from '@/components/VehicleReturnPhoto';
 import VehiclePickupPhoto from '@/components/VehiclePickupPhoto';
+import VehicleRating from '@/components/VehicleRating';
 
 interface Booking {
   id: string;
@@ -28,6 +29,7 @@ interface Booking {
   total_price: number;
   status: string;
   created_at: string;
+  hasReview?: boolean;
 }
 
 const statusConfig = {
@@ -60,6 +62,7 @@ const Bookings = () => {
   const [loading, setLoading] = useState(true);
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
   const [pickupDialogOpen, setPickupDialogOpen] = useState(false);
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
@@ -76,13 +79,30 @@ const Bookings = () => {
 
   const fetchBookings = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch bookings
+      const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setBookings(data || []);
+      if (bookingsError) throw bookingsError;
+
+      // Fetch existing reviews for these bookings
+      const bookingIds = bookingsData?.map(b => b.id) || [];
+      const { data: reviewsData } = await supabase
+        .from('vehicle_reviews')
+        .select('booking_id')
+        .in('booking_id', bookingIds);
+
+      const reviewedBookingIds = new Set(reviewsData?.map(r => r.booking_id) || []);
+
+      // Mark bookings that have reviews
+      const bookingsWithReviewStatus = (bookingsData || []).map(b => ({
+        ...b,
+        hasReview: reviewedBookingIds.has(b.id)
+      }));
+
+      setBookings(bookingsWithReviewStatus);
     } catch (error) {
       console.error('Error fetching bookings:', error);
       toast.error('Fehler beim Laden der Buchungen');
@@ -116,6 +136,11 @@ const Bookings = () => {
   const handlePickupVehicle = (booking: Booking) => {
     setSelectedBooking(booking);
     setPickupDialogOpen(true);
+  };
+
+  const handleRateVehicle = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setRatingDialogOpen(true);
   };
 
   if (authLoading || loading) {
@@ -263,6 +288,8 @@ const Bookings = () => {
                         key={booking.id} 
                         booking={booking} 
                         index={index}
+                        onRate={() => handleRateVehicle(booking)}
+                        showRate={booking.status === 'completed' && !booking.hasReview}
                       />
                     ))}
                   </div>
@@ -318,6 +345,21 @@ const Bookings = () => {
           onComplete={fetchBookings}
         />
       )}
+
+      {/* Vehicle Rating Dialog */}
+      {selectedBooking && (
+        <VehicleRating
+          bookingId={selectedBooking.id}
+          vehicleId={selectedBooking.vehicle_id}
+          vehicleName={selectedBooking.vehicle_name}
+          isOpen={ratingDialogOpen}
+          onClose={() => {
+            setRatingDialogOpen(false);
+            setSelectedBooking(null);
+          }}
+          onComplete={fetchBookings}
+        />
+      )}
     </div>
   );
 };
@@ -328,18 +370,22 @@ const BookingCard = ({
   onCancel,
   onReturn,
   onPickup,
+  onRate,
   showCancel = false,
   showReturn = false,
   showPickup = false,
+  showRate = false,
 }: { 
   booking: Booking; 
   index: number;
   onCancel?: () => void;
   onReturn?: () => void;
   onPickup?: () => void;
+  onRate?: () => void;
   showCancel?: boolean;
   showReturn?: boolean;
   showPickup?: boolean;
+  showRate?: boolean;
 }) => {
   const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.confirmed;
   const StatusIcon = status.icon;
@@ -421,6 +467,17 @@ const BookingCard = ({
             </Button>
           )}
           
+          {showRate && onRate && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRate}
+            >
+              <Star className="w-4 h-4 mr-2" />
+              Bewerten
+            </Button>
+          )}
+
           {showCancel && onCancel && (
             <Button
               variant="ghost"
