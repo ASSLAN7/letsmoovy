@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_photos: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          photo_type: string
+          photo_url: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photo_type?: string
+          photo_url: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photo_type?: string
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_photos_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           created_at: string
