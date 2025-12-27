@@ -20,8 +20,8 @@ const cars = [
     range: "180 km",
     battery: 85,
     available: true,
-    coordinates: [13.405, 52.52] as [number, number],
-    address: "Alexanderplatz 1, Berlin",
+    coordinates: [6.7763, 51.2277] as [number, number],
+    address: "Königsallee 1, Düsseldorf",
   },
   {
     id: 2,
@@ -35,8 +35,8 @@ const cars = [
     range: "450 km",
     battery: 72,
     available: true,
-    coordinates: [13.377, 52.516] as [number, number],
-    address: "Brandenburger Tor, Berlin",
+    coordinates: [6.7735, 51.2330] as [number, number],
+    address: "Altstadt, Düsseldorf",
   },
   {
     id: 3,
@@ -50,8 +50,8 @@ const cars = [
     range: "380 km",
     battery: 45,
     available: true,
-    coordinates: [13.429, 52.523] as [number, number],
-    address: "Friedrichshain, Berlin",
+    coordinates: [6.7950, 51.2200] as [number, number],
+    address: "Medienhafen, Düsseldorf",
   },
 ];
 
