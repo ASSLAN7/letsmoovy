@@ -18,6 +18,7 @@ interface Vehicle {
   price_per_minute: number;
   available: boolean;
   address: string;
+  image_url: string | null;
 }
 
 interface SearchResult {
@@ -85,6 +86,7 @@ const VehicleMap = () => {
           price_per_minute: v.price_per_minute,
           available: v.available,
           address: v.address,
+          image_url: v.image_url,
         }));
 
         setVehicles(mappedVehicles);
@@ -450,6 +452,17 @@ const VehicleMap = () => {
                 >
                   <X size={20} />
                 </button>
+
+                {/* Vehicle Image */}
+                {selectedVehicle.image_url && (
+                  <div className="mb-4 rounded-lg overflow-hidden">
+                    <img 
+                      src={selectedVehicle.image_url} 
+                      alt={selectedVehicle.name}
+                      className="w-full h-32 object-cover"
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
