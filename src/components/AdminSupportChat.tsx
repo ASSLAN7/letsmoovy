@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Send, Loader2, MessageCircle, User, CheckCircle } from 'lucide-react';
+import { Send, Loader2, MessageCircle, User, CheckCircle, Zap, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,64 @@ interface Conversation {
   };
 }
 
+interface Template {
+  id: string;
+  label: string;
+  content: string;
+  category: string;
+}
+
+const RESPONSE_TEMPLATES: Template[] = [
+  {
+    id: '1',
+    label: 'Begrüßung',
+    content: 'Hallo! Vielen Dank für deine Nachricht. Wie kann ich dir heute helfen?',
+    category: 'Allgemein',
+  },
+  {
+    id: '2',
+    label: 'Buchung bestätigen',
+    content: 'Deine Buchung wurde erfolgreich bestätigt. Du erhältst in Kürze eine E-Mail mit allen Details.',
+    category: 'Buchung',
+  },
+  {
+    id: '3',
+    label: 'Stornierung',
+    content: 'Ich habe deine Stornierungsanfrage erhalten. Die Stornierung wird innerhalb von 24 Stunden bearbeitet und der Betrag wird erstattet.',
+    category: 'Buchung',
+  },
+  {
+    id: '4',
+    label: 'Fahrzeug nicht verfügbar',
+    content: 'Leider ist das gewünschte Fahrzeug zum angegebenen Zeitpunkt nicht verfügbar. Möchtest du, dass ich dir Alternativen zeige?',
+    category: 'Fahrzeuge',
+  },
+  {
+    id: '5',
+    label: 'Preisanfrage',
+    content: 'Die Preise variieren je nach Fahrzeugkategorie und Buchungsdauer. Du findest alle aktuellen Preise in unserer Preisübersicht auf der Startseite.',
+    category: 'Preise',
+  },
+  {
+    id: '6',
+    label: 'Technisches Problem',
+    content: 'Entschuldige die Unannehmlichkeiten. Könntest du mir bitte mehr Details zu dem Problem geben? Welchen Browser verwendest du?',
+    category: 'Support',
+  },
+  {
+    id: '7',
+    label: 'Zahlungsproblem',
+    content: 'Bei Zahlungsproblemen überprüfe bitte, ob deine Zahlungsmethode aktuell ist. Wenn das Problem weiterhin besteht, wende dich an deine Bank.',
+    category: 'Zahlung',
+  },
+  {
+    id: '8',
+    label: 'Verabschiedung',
+    content: 'Vielen Dank für deine Anfrage! Falls du weitere Fragen hast, melde dich gerne. Einen schönen Tag noch! 🚗',
+    category: 'Allgemein',
+  },
+];
+
 const AdminSupportChat = () => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -38,6 +96,7 @@ const AdminSupportChat = () => {
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -352,28 +411,71 @@ const AdminSupportChat = () => {
 
             {/* Input */}
             {selectedConversation.status === 'open' && (
-              <div className="p-4 border-t border-border">
-                <div className="flex gap-2">
-                  <Input
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Antwort schreiben..."
-                    className="flex-1"
-                    disabled={sending}
-                  />
-                  <Button
-                    onClick={sendMessage}
-                    disabled={!inputValue.trim() || sending}
-                    className="gradient-accent"
-                    size="icon"
-                  >
-                    {sending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
+              <div className="border-t border-border">
+                {/* Quick Templates */}
+                <AnimatePresence>
+                  {showTemplates && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-3 bg-secondary/30 max-h-[200px] overflow-y-auto">
+                        <div className="grid grid-cols-2 gap-2">
+                          {RESPONSE_TEMPLATES.map((template) => (
+                            <button
+                              key={template.id}
+                              onClick={() => {
+                                setInputValue(template.content);
+                                setShowTemplates(false);
+                              }}
+                              className="text-left p-2 rounded-lg bg-background hover:bg-secondary transition-colors text-sm"
+                            >
+                              <span className="font-medium text-foreground">{template.label}</span>
+                              <span className="block text-xs text-muted-foreground mt-0.5 truncate">
+                                {template.content.substring(0, 50)}...
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="p-4">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowTemplates(!showTemplates)}
+                      className={showTemplates ? 'bg-primary text-primary-foreground' : ''}
+                      title="Schnellantworten"
+                    >
+                      <Zap className="w-4 h-4" />
+                    </Button>
+                    <Input
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Antwort schreiben..."
+                      className="flex-1"
+                      disabled={sending}
+                    />
+                    <Button
+                      onClick={sendMessage}
+                      disabled={!inputValue.trim() || sending}
+                      className="gradient-accent"
+                      size="icon"
+                    >
+                      {sending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
