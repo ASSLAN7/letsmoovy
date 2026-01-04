@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { 
   Car, Calendar, Clock, MapPin, ArrowLeft, 
-  Loader2, XCircle, CheckCircle, AlertCircle, Camera, Play, Star
+  Loader2, XCircle, CheckCircle, AlertCircle, Camera, Play, Star, Unlock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +16,7 @@ import Footer from '@/components/Footer';
 import VehicleReturnPhoto from '@/components/VehicleReturnPhoto';
 import VehiclePickupPhoto from '@/components/VehiclePickupPhoto';
 import VehicleRating from '@/components/VehicleRating';
+import VehicleControl from '@/components/VehicleControl';
 
 interface Booking {
   id: string;
@@ -30,6 +31,7 @@ interface Booking {
   status: string;
   created_at: string;
   hasReview?: boolean;
+  vehicle_unlocked?: boolean;
 }
 
 const statusConfig = {
@@ -266,15 +268,26 @@ const Bookings = () => {
                     <AlertCircle className="w-5 h-5 text-yellow-500" />
                     Aktive Buchungen
                   </h2>
-                  <div className="grid gap-4">
+                  <div className="grid gap-6">
                     {activeBookings.map((booking, index) => (
-                      <BookingCard 
-                        key={booking.id} 
-                        booking={booking} 
-                        index={index}
-                        onReturn={() => handleReturnVehicle(booking)}
-                        showReturn
-                      />
+                      <div key={booking.id} className="space-y-4">
+                        <BookingCard 
+                          booking={booking} 
+                          index={index}
+                          onReturn={() => handleReturnVehicle(booking)}
+                          showReturn
+                        />
+                        <VehicleControl
+                          bookingId={booking.id}
+                          vehicleName={booking.vehicle_name}
+                          isUnlocked={booking.vehicle_unlocked || false}
+                          onStatusChange={(unlocked) => {
+                            setBookings(prev => prev.map(b => 
+                              b.id === booking.id ? { ...b, vehicle_unlocked: unlocked } : b
+                            ));
+                          }}
+                        />
+                      </div>
                     ))}
                   </div>
                 </section>

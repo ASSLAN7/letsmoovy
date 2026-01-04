@@ -65,6 +65,7 @@ export type Database = {
           vehicle_category: string
           vehicle_id: number
           vehicle_name: string
+          vehicle_unlocked: boolean
         }
         Insert: {
           created_at?: string
@@ -81,6 +82,7 @@ export type Database = {
           vehicle_category: string
           vehicle_id: number
           vehicle_name: string
+          vehicle_unlocked?: boolean
         }
         Update: {
           created_at?: string
@@ -97,6 +99,7 @@ export type Database = {
           vehicle_category?: string
           vehicle_id?: number
           vehicle_name?: string
+          vehicle_unlocked?: boolean
         }
         Relationships: []
       }
@@ -282,6 +285,38 @@ export type Database = {
             foreignKeyName: "vehicle_reviews_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_unlock_logs: {
+        Row: {
+          action: string
+          booking_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_unlock_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
