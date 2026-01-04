@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Unlock, Loader2, Car, CheckCircle } from 'lucide-react';
+import { Lock, Unlock, Loader2, Car, CheckCircle, Volume2, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface VehicleControlProps {
   bookingId: string;
+  vehicleId: number;
   vehicleName: string;
   isUnlocked: boolean;
   onStatusChange: (unlocked: boolean) => void;
@@ -15,64 +16,69 @@ interface VehicleControlProps {
 
 const VehicleControl = ({ 
   bookingId, 
+  vehicleId,
   vehicleName, 
   isUnlocked, 
   onStatusChange,
   disabled = false 
 }: VehicleControlProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingCommand, setLoadingCommand] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleToggleLock = async () => {
+  const executeCommand = async (command: 'unlock' | 'lock' | 'horn' | 'flash_lights') => {
     setIsLoading(true);
+    setLoadingCommand(command);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         toast.error('Bitte melde dich an');
         return;
       }
 
-      const newState = !isUnlocked;
-      const action = newState ? 'unlock' : 'lock';
-
-      // Simulate hardware delay (in real app, this would be IoT API call)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Update booking state
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({ vehicle_unlocked: newState })
-        .eq('id', bookingId);
-
-      if (updateError) throw updateError;
-
-      // Log the action
-      const { error: logError } = await supabase
-        .from('vehicle_unlock_logs')
-        .insert({
-          booking_id: bookingId,
-          user_id: user.id,
-          action: action
-        });
-
-      if (logError) console.error('Failed to log action:', logError);
-
-      onStatusChange(newState);
-      setShowSuccess(true);
-      
-      toast.success(
-        newState 
-          ? `${vehicleName} wurde entsperrt` 
-          : `${vehicleName} wurde gesperrt`
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vehicle-control`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            vehicleId,
+            command,
+            bookingId,
+          }),
+        }
       );
 
-      setTimeout(() => setShowSuccess(false), 2000);
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.message || 'Fehler');
+      }
+
+      if (command === 'unlock' || command === 'lock') {
+        onStatusChange(command === 'unlock');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+      }
+      
+      const messages: Record<string, string> = {
+        unlock: `${vehicleName} wurde entsperrt`,
+        lock: `${vehicleName} wurde gesperrt`,
+        horn: 'Hupe aktiviert',
+        flash_lights: 'Lichter blinken',
+      };
+      
+      toast.success(messages[command]);
     } catch (error) {
-      console.error('Error toggling lock:', error);
-      toast.error('Fehler beim Steuern des Fahrzeugs');
+      console.error('Error executing command:', error);
+      toast.error(error instanceof Error ? error.message : 'Fehler beim Steuern des Fahrzeugs');
     } finally {
       setIsLoading(false);
+      setLoadingCommand(null);
     }
   };
 
@@ -151,24 +157,24 @@ const VehicleControl = ({
         </motion.div>
 
         {/* Status Text */}
-        <p className={`text-lg font-medium mb-4 ${
+        <p className={`text-lg font-medium mb-6 ${
           isUnlocked ? 'text-green-500' : 'text-muted-foreground'
         }`}>
-          {isLoading 
+          {loadingCommand === 'unlock' || loadingCommand === 'lock'
             ? (isUnlocked ? 'Sperren...' : 'Entsperren...') 
             : (isUnlocked ? 'Entsperrt' : 'Gesperrt')
           }
         </p>
 
-        {/* Action Button */}
+        {/* Main Lock/Unlock Button */}
         <Button
-          onClick={handleToggleLock}
+          onClick={() => executeCommand(isUnlocked ? 'lock' : 'unlock')}
           disabled={disabled || isLoading}
           size="lg"
           variant={isUnlocked ? 'outline' : 'default'}
-          className="w-full max-w-xs"
+          className="w-full max-w-xs mb-4"
         >
-          {isLoading ? (
+          {loadingCommand === 'unlock' || loadingCommand === 'lock' ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               {isUnlocked ? 'Sperren...' : 'Entsperren...'}
@@ -185,6 +191,42 @@ const VehicleControl = ({
             </>
           )}
         </Button>
+
+        {/* Additional Controls */}
+        <div className="flex gap-3">
+          <Button
+            onClick={() => executeCommand('horn')}
+            disabled={disabled || isLoading}
+            variant="outline"
+            size="sm"
+            className="flex-1"
+          >
+            {loadingCommand === 'horn' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Volume2 className="w-4 h-4 mr-2" />
+                Hupen
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => executeCommand('flash_lights')}
+            disabled={disabled || isLoading}
+            variant="outline"
+            size="sm"
+            className="flex-1"
+          >
+            {loadingCommand === 'flash_lights' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Lightbulb className="w-4 h-4 mr-2" />
+                Blinken
+              </>
+            )}
+          </Button>
+        </div>
 
         {disabled && (
           <p className="text-sm text-muted-foreground mt-4 text-center">

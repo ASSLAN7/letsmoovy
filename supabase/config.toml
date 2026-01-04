@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.send-booking-reminder]
 verify_jwt = false
+
+[functions.vehicle-control]
+verify_jwt = true
+
+[functions.get-mapbox-token]
+verify_jwt = false

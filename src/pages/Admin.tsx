@@ -23,7 +23,8 @@ import {
   BarChart3,
   Camera,
   Star,
-  MessageSquare
+  MessageSquare,
+  Rocket
 } from 'lucide-react';
 import { Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,7 @@ import Navbar from '@/components/Navbar';
 import AdminCharts from '@/components/AdminCharts';
 import AdminSupportChat from '@/components/AdminSupportChat';
 import BookingPhotosDialog from '@/components/BookingPhotosDialog';
+import LaunchChecklist from '@/components/LaunchChecklist';
 
 interface Booking {
   id: string;
@@ -604,6 +606,10 @@ const Admin = () => {
                 <Headphones className="w-4 h-4 mr-2" />
                 Support
               </TabsTrigger>
+              <TabsTrigger value="launch" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Rocket className="w-4 h-4 mr-2" />
+                Launch
+              </TabsTrigger>
             </TabsList>
 
             {/* Bookings Tab */}
@@ -944,6 +950,11 @@ const Admin = () => {
             {/* Support Tab */}
             <TabsContent value="support">
               <AdminSupportChat />
+            </TabsContent>
+
+            {/* Launch Tab */}
+            <TabsContent value="launch">
+              <LaunchChecklist />
             </TabsContent>
           </Tabs>
         </motion.div>

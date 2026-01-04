@@ -279,6 +279,7 @@ const Bookings = () => {
                         />
                         <VehicleControl
                           bookingId={booking.id}
+                          vehicleId={booking.vehicle_id}
                           vehicleName={booking.vehicle_name}
                           isUnlocked={booking.vehicle_unlocked || false}
                           onStatusChange={(unlocked) => {
