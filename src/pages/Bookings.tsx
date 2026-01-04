@@ -422,6 +422,7 @@ const BookingCard = ({
 }) => {
   const status = statusConfig[booking.status as keyof typeof statusConfig] || statusConfig.confirmed;
   const StatusIcon = status.icon;
+  const isActive = booking.status === 'active';
 
   return (
     <motion.div
@@ -437,7 +438,19 @@ const BookingCard = ({
             <Car className="w-7 h-7 text-primary-foreground" />
           </div>
           <div>
-            <h3 className="font-bold text-foreground">{booking.vehicle_name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-foreground">{booking.vehicle_name}</h3>
+              {isActive && (
+                <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                  booking.vehicle_unlocked 
+                    ? 'bg-green-500/20 text-green-500' 
+                    : 'bg-muted text-muted-foreground'
+                }`}>
+                  <Unlock size={10} />
+                  {booking.vehicle_unlocked ? 'Offen' : 'Gesperrt'}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">{booking.vehicle_category}</p>
           </div>
         </div>
