@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Loader2, Fingerprint, ScanFace, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
+import { useBiometricAuth } from '@/hooks/useBiometricAuth';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import logoImage from '@/assets/logo.png';
+
+const BIOMETRIC_SERVER = 'moovy-carsharing';
 
 // Validation schemas
 const emailSchema = z.string().email('Ungültige E-Mail-Adresse');
@@ -18,8 +21,19 @@ const nameSchema = z.string().min(2, 'Name muss mindestens 2 Zeichen haben').max
 const Auth = () => {
   const navigate = useNavigate();
   const { user, loading, signUp, signIn, signInWithGoogle } = useAuth();
+  const { 
+    isAvailable: biometricAvailable, 
+    isLoading: biometricLoading,
+    authenticate: biometricAuth,
+    getCredentials,
+    saveCredentials,
+    getBiometryLabel,
+    getBiometryIcon,
+  } = useBiometricAuth();
+  
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +46,17 @@ const Auth = () => {
       navigate('/');
     }
   }, [user, loading, navigate]);
+
+  // Check for saved biometric credentials
+  useEffect(() => {
+    const checkBiometricCredentials = async () => {
+      if (biometricAvailable && !biometricLoading) {
+        const credentials = await getCredentials(BIOMETRIC_SERVER);
+        setBiometricEnabled(!!credentials);
+      }
+    };
+    checkBiometricCredentials();
+  }, [biometricAvailable, biometricLoading, getCredentials]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -83,6 +108,11 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
+          // Save credentials for biometric login if available
+          if (biometricAvailable) {
+            await saveCredentials(BIOMETRIC_SERVER, email, password);
+            setBiometricEnabled(true);
+          }
           toast.success('Erfolgreich angemeldet!');
           navigate('/');
         }
@@ -95,12 +125,40 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
+          // Save credentials for biometric login if available
+          if (biometricAvailable) {
+            await saveCredentials(BIOMETRIC_SERVER, email, password);
+            setBiometricEnabled(true);
+          }
           toast.success('Konto erfolgreich erstellt!');
           navigate('/');
         }
       }
     } catch (err) {
       toast.error('Ein unerwarteter Fehler ist aufgetreten.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      const authenticated = await biometricAuth('Melden Sie sich bei MOOVY an');
+      if (authenticated) {
+        const credentials = await getCredentials(BIOMETRIC_SERVER);
+        if (credentials) {
+          const { error } = await signIn(credentials.username, credentials.password);
+          if (error) {
+            toast.error('Biometrische Anmeldung fehlgeschlagen. Bitte manuell anmelden.');
+          } else {
+            toast.success('Erfolgreich mit Biometrie angemeldet!');
+            navigate('/');
+          }
+        }
+      }
+    } catch (err) {
+      toast.error('Biometrische Authentifizierung fehlgeschlagen.');
     } finally {
       setIsSubmitting(false);
     }
@@ -161,6 +219,31 @@ const Auth = () => {
               ? 'Melde dich an, um Fahrzeuge zu buchen' 
               : 'Registriere dich für MOOVY Carsharing'}
           </p>
+
+          {/* Biometric Login Button - Show only on native with saved credentials */}
+          {isLogin && biometricAvailable && biometricEnabled && (
+            <>
+              <Button
+                variant="outline"
+                className="w-full mb-4 h-14"
+                onClick={handleBiometricLogin}
+                disabled={isSubmitting}
+              >
+                {getBiometryIcon() === 'scan-face' && <ScanFace className="w-6 h-6 mr-2" />}
+                {getBiometryIcon() === 'fingerprint' && <Fingerprint className="w-6 h-6 mr-2" />}
+                {getBiometryIcon() === 'eye' && <Eye className="w-6 h-6 mr-2" />}
+                Mit {getBiometryLabel()} anmelden
+              </Button>
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">oder</span>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Google Sign In */}
           <Button
