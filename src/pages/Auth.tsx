@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useBiometricAuth } from '@/hooks/useBiometricAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import logoImage from '@/assets/logo.png';
@@ -20,13 +21,14 @@ const nameSchema = z.string().min(2, 'Name muss mindestens 2 Zeichen haben').max
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, loading, signUp, signIn, signInWithGoogle } = useAuth();
+  const { user, session, loading, signUp, signIn, signInWithGoogle } = useAuth();
   const { 
     isAvailable: biometricAvailable, 
     isLoading: biometricLoading,
     authenticate: biometricAuth,
-    getCredentials,
-    saveCredentials,
+    getStoredToken,
+    saveRefreshToken,
+    hasStoredCredentials,
     getBiometryLabel,
     getBiometryIcon,
   } = useBiometricAuth();
@@ -47,16 +49,27 @@ const Auth = () => {
     }
   }, [user, loading, navigate]);
 
-  // Check for saved biometric credentials
+  // Check for saved biometric credentials (refresh tokens)
   useEffect(() => {
     const checkBiometricCredentials = async () => {
       if (biometricAvailable && !biometricLoading) {
-        const credentials = await getCredentials(BIOMETRIC_SERVER);
-        setBiometricEnabled(!!credentials);
+        const hasCredentials = await hasStoredCredentials(BIOMETRIC_SERVER);
+        setBiometricEnabled(hasCredentials);
       }
     };
     checkBiometricCredentials();
-  }, [biometricAvailable, biometricLoading, getCredentials]);
+  }, [biometricAvailable, biometricLoading, hasStoredCredentials]);
+
+  // Save refresh token when session changes after successful login
+  useEffect(() => {
+    const saveTokenForBiometric = async () => {
+      if (session?.refresh_token && session?.user?.email && biometricAvailable) {
+        await saveRefreshToken(BIOMETRIC_SERVER, session.user.email, session.refresh_token);
+        setBiometricEnabled(true);
+      }
+    };
+    saveTokenForBiometric();
+  }, [session, biometricAvailable, saveRefreshToken]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -108,11 +121,7 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
-          // Save credentials for biometric login if available
-          if (biometricAvailable) {
-            await saveCredentials(BIOMETRIC_SERVER, email, password);
-            setBiometricEnabled(true);
-          }
+          // Refresh token will be saved automatically via useEffect when session updates
           toast.success('Erfolgreich angemeldet!');
           navigate('/');
         }
@@ -125,11 +134,7 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
-          // Save credentials for biometric login if available
-          if (biometricAvailable) {
-            await saveCredentials(BIOMETRIC_SERVER, email, password);
-            setBiometricEnabled(true);
-          }
+          // Refresh token will be saved automatically via useEffect when session updates
           toast.success('Konto erfolgreich erstellt!');
           navigate('/');
         }
@@ -144,20 +149,44 @@ const Auth = () => {
   const handleBiometricLogin = async () => {
     setIsSubmitting(true);
     try {
+      // First verify biometric identity
       const authenticated = await biometricAuth('Melden Sie sich bei MOOVY an');
-      if (authenticated) {
-        const credentials = await getCredentials(BIOMETRIC_SERVER);
-        if (credentials) {
-          const { error } = await signIn(credentials.username, credentials.password);
-          if (error) {
-            toast.error('Biometrische Anmeldung fehlgeschlagen. Bitte manuell anmelden.');
-          } else {
-            toast.success('Erfolgreich mit Biometrie angemeldet!');
-            navigate('/');
-          }
-        }
+      if (!authenticated) {
+        setIsSubmitting(false);
+        return;
       }
+
+      // Get stored refresh token
+      const storedData = await getStoredToken(BIOMETRIC_SERVER);
+      if (!storedData) {
+        toast.error('Keine gespeicherten Anmeldedaten gefunden. Bitte manuell anmelden.');
+        setBiometricEnabled(false);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Use refresh token to restore session
+      const { data, error } = await supabase.auth.refreshSession({
+        refresh_token: storedData.refreshToken
+      });
+
+      if (error || !data.session) {
+        // Refresh token expired or invalid - clear stored credentials
+        toast.error('Sitzung abgelaufen. Bitte manuell anmelden.');
+        setBiometricEnabled(false);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Save the new refresh token for next time
+      if (data.session.refresh_token) {
+        await saveRefreshToken(BIOMETRIC_SERVER, storedData.email, data.session.refresh_token);
+      }
+
+      toast.success('Erfolgreich mit Biometrie angemeldet!');
+      navigate('/');
     } catch (err) {
+      console.error('Biometric login error:', err);
       toast.error('Biometrische Authentifizierung fehlgeschlagen.');
     } finally {
       setIsSubmitting(false);
