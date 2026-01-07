@@ -157,29 +157,63 @@ const VehicleMap = () => {
     markersRef.current = [];
 
     vehicles.forEach((vehicle) => {
-      // Create custom marker element
+      // Create custom marker element using safe DOM manipulation
       const el = document.createElement('div');
       el.className = 'vehicle-marker';
-      el.innerHTML = `
-        <div class="relative cursor-pointer transform transition-transform hover:scale-110">
-          <div class="${vehicle.available 
-            ? 'bg-gradient-to-br from-teal-400 to-cyan-500' 
-            : 'bg-gray-500'
-          } w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-            vehicle.available ? 'shadow-teal-500/50' : ''
-          }">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.5 1 12.2 1 13v3c0 .6.4 1 1 1h2"/>
-              <circle cx="7" cy="17" r="2"/>
-              <path d="M9 17h6"/>
-              <circle cx="17" cy="17" r="2"/>
-            </svg>
-          </div>
-          ${vehicle.available ? `
-            <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"></div>
-          ` : ''}
-        </div>
-      `;
+      
+      // Create wrapper div
+      const wrapper = document.createElement('div');
+      wrapper.className = 'relative cursor-pointer transform transition-transform hover:scale-110';
+      
+      // Create main circle container
+      const circleDiv = document.createElement('div');
+      circleDiv.className = vehicle.available 
+        ? 'bg-gradient-to-br from-teal-400 to-cyan-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-teal-500/50'
+        : 'bg-gray-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg';
+      
+      // Create SVG for car icon
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('width', '20');
+      svg.setAttribute('height', '20');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'white');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      
+      const path1 = document.createElementNS(svgNS, 'path');
+      path1.setAttribute('d', 'M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.5 1 12.2 1 13v3c0 .6.4 1 1 1h2');
+      svg.appendChild(path1);
+      
+      const circle1 = document.createElementNS(svgNS, 'circle');
+      circle1.setAttribute('cx', '7');
+      circle1.setAttribute('cy', '17');
+      circle1.setAttribute('r', '2');
+      svg.appendChild(circle1);
+      
+      const path2 = document.createElementNS(svgNS, 'path');
+      path2.setAttribute('d', 'M9 17h6');
+      svg.appendChild(path2);
+      
+      const circle2 = document.createElementNS(svgNS, 'circle');
+      circle2.setAttribute('cx', '17');
+      circle2.setAttribute('cy', '17');
+      circle2.setAttribute('r', '2');
+      svg.appendChild(circle2);
+      
+      circleDiv.appendChild(svg);
+      wrapper.appendChild(circleDiv);
+      
+      // Add availability indicator if available
+      if (vehicle.available) {
+        const indicator = document.createElement('div');
+        indicator.className = 'absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse';
+        wrapper.appendChild(indicator);
+      }
+      
+      el.appendChild(wrapper);
 
       el.addEventListener('click', () => {
         setSelectedVehicle(vehicle);
@@ -253,18 +287,36 @@ const VehicleMap = () => {
       searchMarkerRef.current.remove();
     }
     
-    // Create search location marker
+    // Create search location marker using safe DOM manipulation
     const el = document.createElement('div');
-    el.innerHTML = `
-      <div class="relative">
-        <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-lg shadow-red-500/50 animate-bounce">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3" fill="white"/>
-          </svg>
-        </div>
-      </div>
-    `;
+    el.className = 'relative';
+    
+    const markerDiv = document.createElement('div');
+    markerDiv.className = 'w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-lg shadow-red-500/50 animate-bounce';
+    
+    // Create SVG for location pin icon
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', '16');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'white');
+    svg.setAttribute('stroke', 'white');
+    svg.setAttribute('stroke-width', '2');
+    
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z');
+    svg.appendChild(path);
+    
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', '12');
+    circle.setAttribute('cy', '10');
+    circle.setAttribute('r', '3');
+    circle.setAttribute('fill', 'white');
+    svg.appendChild(circle);
+    
+    markerDiv.appendChild(svg);
+    el.appendChild(markerDiv);
     
     searchMarkerRef.current = new mapboxgl.Marker(el)
       .setLngLat(result.center)
