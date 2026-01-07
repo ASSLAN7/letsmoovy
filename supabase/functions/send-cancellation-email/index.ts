@@ -10,13 +10,7 @@ const corsHeaders = {
 };
 
 interface CancellationEmailRequest {
-  email: string;
-  userName: string;
-  vehicleName: string;
-  vehicleCategory: string;
-  startTime: string;
-  endTime: string;
-  pickupAddress: string;
+  bookingId: string;
 }
 
 const formatDateTime = (isoString: string): string => {
@@ -50,13 +44,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const supabase = createClient(
+    // Create client with user's auth context
+    const supabaseUser = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    // Verify the user token
+    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
     
     if (userError || !userData?.user) {
       console.log("Invalid token:", userError?.message);
@@ -69,18 +65,70 @@ const handler = async (req: Request): Promise<Response> => {
     const userId = userData.user.id;
     console.log("Authenticated user:", userId);
 
-    const {
-      email,
-      userName,
-      vehicleName,
-      vehicleCategory,
-      startTime,
-      endTime,
-      pickupAddress,
-    }: CancellationEmailRequest = await req.json();
+    // Parse request - only accept bookingId
+    const { bookingId }: CancellationEmailRequest = await req.json();
+
+    if (!bookingId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing bookingId' }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Create service role client for database queries
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Fetch booking from database and verify ownership
+    const { data: booking, error: bookingError } = await supabaseAdmin
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .single();
+
+    if (bookingError || !booking) {
+      console.log("Booking not found:", bookingError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Booking not found' }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify the authenticated user owns this booking
+    if (booking.user_id !== userId) {
+      console.log("User does not own this booking. User:", userId, "Booking owner:", booking.user_id);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - You do not own this booking' }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Fetch user profile for email and name
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile?.email) {
+      console.log("Profile not found or missing email:", profileError?.message);
+      return new Response(
+        JSON.stringify({ error: 'User profile not found' }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const email = profile.email;
+    const userName = profile.full_name || email.split('@')[0];
 
     console.log("Sending cancellation email to:", email);
-    console.log("Cancelled booking:", { vehicleName, startTime, endTime });
+    console.log("Cancelled booking:", { 
+      vehicleName: booking.vehicle_name, 
+      startTime: booking.start_time, 
+      endTime: booking.end_time 
+    });
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -91,7 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "EV Carsharing <onboarding@resend.dev>",
         to: [email],
-        subject: `Buchung storniert: ${vehicleName}`,
+        subject: `Buchung storniert: ${booking.vehicle_name}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -117,7 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
                       <tr>
                         <td>
                           <p style="color: #374151; font-size: 16px; margin: 0 0 24px 0;">
-                            Hallo ${userName || 'Kunde'},
+                            Hallo ${userName},
                           </p>
                           <p style="color: #374151; font-size: 16px; margin: 0 0 24px 0;">
                             Deine Buchung wurde erfolgreich storniert. Hier sind die Details der stornierten Buchung:
@@ -129,9 +177,9 @@ const handler = async (req: Request): Promise<Response> => {
                               <td>
                                 <p style="color: #dc2626; margin: 0 0 8px 0; font-size: 12px; font-weight: 600; text-transform: uppercase;">Storniert</p>
                                 <h2 style="color: #111827; margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">
-                                  ${vehicleName}
+                                  ${booking.vehicle_name}
                                 </h2>
-                                <p style="color: #6b7280; margin: 0; font-size: 14px;">${vehicleCategory}</p>
+                                <p style="color: #6b7280; margin: 0; font-size: 14px;">${booking.vehicle_category}</p>
                               </td>
                             </tr>
                           </table>
@@ -141,19 +189,19 @@ const handler = async (req: Request): Promise<Response> => {
                             <tr>
                               <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
                                 <strong style="color: #374151;">Geplanter Start:</strong>
-                                <span style="color: #6b7280; float: right;">${formatDateTime(startTime)}</span>
+                                <span style="color: #6b7280; float: right;">${formatDateTime(booking.start_time)}</span>
                               </td>
                             </tr>
                             <tr>
                               <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
                                 <strong style="color: #374151;">Geplantes Ende:</strong>
-                                <span style="color: #6b7280; float: right;">${formatDateTime(endTime)}</span>
+                                <span style="color: #6b7280; float: right;">${formatDateTime(booking.end_time)}</span>
                               </td>
                             </tr>
                             <tr>
                               <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
                                 <strong style="color: #374151;">Abholort:</strong>
-                                <span style="color: #6b7280; float: right;">${pickupAddress}</span>
+                                <span style="color: #6b7280; float: right;">${booking.pickup_address}</span>
                               </td>
                             </tr>
                           </table>
