@@ -11,12 +11,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import logoImage from '@/assets/logo.png';
+import { PasswordStrengthIndicator, validatePasswordStrength } from '@/components/PasswordStrengthIndicator';
 
 const BIOMETRIC_SERVER = 'moovy-carsharing';
 
 // Validation schemas
 const emailSchema = z.string().email('Ungültige E-Mail-Adresse');
-const passwordSchema = z.string().min(6, 'Passwort muss mindestens 6 Zeichen haben');
+const loginPasswordSchema = z.string().min(6, 'Passwort muss mindestens 6 Zeichen haben');
 const nameSchema = z.string().min(2, 'Name muss mindestens 2 Zeichen haben').max(100);
 
 const Auth = () => {
@@ -82,11 +83,20 @@ const Auth = () => {
       }
     }
 
-    try {
-      passwordSchema.parse(password);
-    } catch (e) {
-      if (e instanceof z.ZodError) {
-        newErrors.password = e.errors[0].message;
+    // For login, use simple password validation
+    // For signup, use strong password validation
+    if (isLogin) {
+      try {
+        loginPasswordSchema.parse(password);
+      } catch (e) {
+        if (e instanceof z.ZodError) {
+          newErrors.password = e.errors[0].message;
+        }
+      }
+    } else {
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        newErrors.password = 'Bitte erfülle alle Passwortanforderungen';
       }
     }
 
@@ -359,7 +369,7 @@ const Auth = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder={isLogin ? "••••••••" : "Min. 12 Zeichen, Groß/Klein, Zahl, Sonderzeichen"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -368,6 +378,10 @@ const Auth = () => {
               </div>
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password}</p>
+              )}
+              {/* Show password strength indicator only during signup */}
+              {!isLogin && (
+                <PasswordStrengthIndicator password={password} className="mt-3" />
               )}
             </div>
 
