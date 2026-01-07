@@ -15,10 +15,11 @@ import { toast } from 'sonner';
 
 interface BookingPhoto {
   id: string;
-  photo_url: string;
+  photo_url: string; // This is now the file path, not public URL
   photo_type: string;
   notes: string | null;
   created_at: string;
+  signedUrl?: string; // We'll add this for display
 }
 
 interface BookingPhotosDialogProps {
@@ -52,7 +53,32 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setPhotos(data || []);
+      
+      // Generate signed URLs for each photo (valid for 1 hour)
+      const photosWithSignedUrls = await Promise.all(
+        (data || []).map(async (photo) => {
+          // Check if photo_url is already a full URL (old data) or a path (new data)
+          const isFullUrl = photo.photo_url.startsWith('http');
+          
+          if (isFullUrl) {
+            // Old format: extract path from URL
+            const urlParts = photo.photo_url.split('/vehicle-photos/');
+            const filePath = urlParts.length > 1 ? urlParts[1] : photo.photo_url;
+            const { data: signedData } = await supabase.storage
+              .from('vehicle-photos')
+              .createSignedUrl(filePath, 3600); // 1 hour expiry
+            return { ...photo, signedUrl: signedData?.signedUrl || photo.photo_url };
+          } else {
+            // New format: photo_url is already the file path
+            const { data: signedData } = await supabase.storage
+              .from('vehicle-photos')
+              .createSignedUrl(photo.photo_url, 3600); // 1 hour expiry
+            return { ...photo, signedUrl: signedData?.signedUrl || '' };
+          }
+        })
+      );
+      
+      setPhotos(photosWithSignedUrls);
     } catch (err) {
       console.error('Error fetching photos:', err);
     } finally {
@@ -60,17 +86,20 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
     }
   };
 
-  const handleDelete = async (photoId: string, photoUrl: string) => {
+  const handleDelete = async (photoId: string, photoPath: string) => {
     if (!confirm('Foto wirklich löschen?')) return;
     
     setDeletingId(photoId);
     try {
-      // Extract file path from URL for storage deletion
-      const urlParts = photoUrl.split('/vehicle-photos/');
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
-        await supabase.storage.from('vehicle-photos').remove([filePath]);
+      // Extract file path - handle both old URL format and new path format
+      let filePath = photoPath;
+      if (photoPath.startsWith('http')) {
+        const urlParts = photoPath.split('/vehicle-photos/');
+        filePath = urlParts.length > 1 ? urlParts[1] : photoPath;
       }
+      
+      // Delete from storage
+      await supabase.storage.from('vehicle-photos').remove([filePath]);
 
       // Delete from database
       const { error } = await supabase
@@ -90,20 +119,26 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
     }
   };
 
-  const handleDownload = async (photoUrl: string, index: number) => {
+  const handleDownload = async (signedUrl: string, index: number) => {
+    if (!signedUrl) {
+      toast.error('Foto nicht verfügbar');
+      return;
+    }
+    
     try {
-      const response = await fetch(photoUrl);
+      const response = await fetch(signedUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `rueckgabe-foto-${index + 1}.jpg`;
+      a.download = `fahrzeug-foto-${index + 1}.jpg`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
       console.error('Download error:', err);
+      toast.error('Download fehlgeschlagen');
     }
   };
 
@@ -141,20 +176,26 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
                   <div key={photo.id} className="relative group">
                     <div 
                       className="aspect-square rounded-lg overflow-hidden cursor-pointer border border-border hover:border-primary transition-colors"
-                      onClick={() => setSelectedPhoto(photo.photo_url)}
+                      onClick={() => setSelectedPhoto(photo.signedUrl || null)}
                     >
-                      <img
-                        src={photo.photo_url}
-                        alt={`Rückgabe-Foto ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      {photo.signedUrl ? (
+                        <img
+                          src={photo.signedUrl}
+                          alt={`Fahrzeug-Foto ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                          <Camera className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
                     
                     <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setSelectedPhoto(photo.photo_url)}
+                        onClick={() => setSelectedPhoto(photo.signedUrl || null)}
                         className="h-8 w-8"
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -162,7 +203,7 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDownload(photo.photo_url, index)}
+                        onClick={() => handleDownload(photo.signedUrl || '', index)}
                         className="h-8 w-8"
                       >
                         <Download className="w-4 h-4" />
@@ -182,8 +223,17 @@ const BookingPhotosDialog = ({ bookingId, bookingName, open, onOpenChange }: Boo
                       </Button>
                     </div>
                     
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {format(new Date(photo.created_at), "dd.MM.yyyy HH:mm", { locale: de })}
+                    <div className="mt-2">
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        photo.photo_type === 'pickup' 
+                          ? 'bg-blue-500/20 text-blue-400' 
+                          : 'bg-green-500/20 text-green-400'
+                      }`}>
+                        {photo.photo_type === 'pickup' ? 'Übernahme' : 'Rückgabe'}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {format(new Date(photo.created_at), "dd.MM.yyyy HH:mm", { locale: de })}
+                      </span>
                     </div>
                     
                     {photo.notes && (
