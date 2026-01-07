@@ -203,37 +203,35 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
     setIsSubmitting(true);
     
     try {
-      // Double-check availability right before booking
-      const { data: availabilityCheck, error: availError } = await supabase.rpc('check_vehicle_availability', {
+      // Use atomic booking function to prevent race conditions
+      const { data: bookingId, error: bookingError } = await supabase.rpc('book_vehicle_atomic', {
+        p_user_id: user.id,
         p_vehicle_id: vehicle.id,
         p_start_time: startDateTime.toISOString(),
-        p_end_time: endDateTime.toISOString()
+        p_end_time: endDateTime.toISOString(),
+        p_vehicle_name: vehicle.name,
+        p_vehicle_category: vehicle.category,
+        p_pickup_address: vehicle.address,
+        p_price_per_minute: pricePerMinute,
+        p_total_price: parseFloat(totalPrice)
       });
 
-      if (availError) throw availError;
-      
-      if (!availabilityCheck) {
-        toast.error('Dieser Zeitraum wurde soeben von jemand anderem gebucht. Bitte wähle einen anderen Zeitraum.');
-        setIsAvailable(false);
-        await fetchExistingBookings();
-        setIsSubmitting(false);
-        return;
+      if (bookingError) {
+        // Handle specific error types
+        if (bookingError.message?.includes('time_slot_taken') || bookingError.message?.includes('no_booking_overlap')) {
+          toast.error('Dieser Zeitraum wurde soeben von jemand anderem gebucht. Bitte wähle einen anderen Zeitraum.');
+          setIsAvailable(false);
+          await fetchExistingBookings();
+          setIsSubmitting(false);
+          return;
+        }
+        if (bookingError.message?.includes('vehicle_not_available')) {
+          toast.error('Das Fahrzeug ist nicht verfügbar.');
+          setIsSubmitting(false);
+          return;
+        }
+        throw bookingError;
       }
-
-      const { error } = await supabase.from('bookings').insert({
-        user_id: user.id,
-        vehicle_id: vehicle.id,
-        vehicle_name: vehicle.name,
-        vehicle_category: vehicle.category,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
-        pickup_address: vehicle.address,
-        price_per_minute: pricePerMinute,
-        total_price: parseFloat(totalPrice),
-        status: 'confirmed'
-      });
-
-      if (error) throw error;
 
       // Send confirmation email
       try {
@@ -259,7 +257,7 @@ const BookingDialog = ({ vehicle, isOpen, onClose }: BookingDialogProps) => {
 
       setBookingComplete(true);
       toast.success('Buchung erfolgreich!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Booking error:', error);
       toast.error('Fehler bei der Buchung. Bitte versuche es erneut.');
     } finally {

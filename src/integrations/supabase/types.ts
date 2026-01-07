@@ -378,6 +378,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_vehicle_atomic: {
+        Args: {
+          p_end_time: string
+          p_pickup_address: string
+          p_price_per_minute: number
+          p_start_time: string
+          p_total_price: number
+          p_user_id: string
+          p_vehicle_category: string
+          p_vehicle_id: number
+          p_vehicle_name: string
+        }
+        Returns: string
+      }
       check_vehicle_availability: {
         Args: {
           p_end_time: string
