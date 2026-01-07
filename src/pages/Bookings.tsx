@@ -125,17 +125,11 @@ const Bookings = () => {
 
       if (error) throw error;
 
-      // Send cancellation email
+      // Send cancellation email - only pass bookingId for security
       try {
         await supabase.functions.invoke('send-cancellation-email', {
           body: {
-            email: user?.email,
-            userName: user?.user_metadata?.full_name || user?.email?.split('@')[0],
-            vehicleName: booking.vehicle_name,
-            vehicleCategory: booking.vehicle_category,
-            startTime: booking.start_time,
-            endTime: booking.end_time,
-            pickupAddress: booking.pickup_address,
+            bookingId: bookingId,
           },
         });
       } catch (emailErr) {
