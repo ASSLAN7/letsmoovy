@@ -71,7 +71,7 @@ const VehicleReturnPhoto = ({
     setUploading(true);
 
     try {
-      const uploadedUrls: string[] = [];
+      const uploadedPaths: string[] = [];
 
       for (let i = 0; i < photos.length; i++) {
         const file = photos[i];
@@ -84,18 +84,15 @@ const VehicleReturnPhoto = ({
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('vehicle-photos')
-          .getPublicUrl(fileName);
-
-        uploadedUrls.push(urlData.publicUrl);
+        // Store the file path, not the public URL (bucket is now private)
+        uploadedPaths.push(fileName);
       }
 
-      // Save photo records to database
-      for (const url of uploadedUrls) {
+      // Save photo records to database with file path (not public URL)
+      for (const filePath of uploadedPaths) {
         const { error: dbError } = await supabase.from('booking_photos').insert({
           booking_id: bookingId,
-          photo_url: url,
+          photo_url: filePath, // Store path, not URL
           photo_type: 'return',
           notes: notes.trim() || null,
         });
