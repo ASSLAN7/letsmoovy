@@ -102,25 +102,29 @@ export const useBiometricAuth = () => {
     }
   }, [state.isAvailable]);
 
-  const saveCredentials = useCallback(async (server: string, username: string, password: string): Promise<boolean> => {
+  // Save refresh token securely (not password!)
+  const saveRefreshToken = useCallback(async (server: string, email: string, refreshToken: string): Promise<boolean> => {
     if (!NativeBiometric) {
       return false;
     }
 
     try {
+      // We store the email as username and refresh token as "password" in secure storage
+      // The password field is just the storage key - we're storing a token, not actual password
       await NativeBiometric.setCredentials({
         server,
-        username,
-        password,
+        username: email,
+        password: refreshToken, // This is actually the refresh token
       });
       return true;
     } catch (error) {
-      console.error('Failed to save credentials:', error);
+      console.error('Failed to save refresh token:', error);
       return false;
     }
   }, []);
 
-  const getCredentials = useCallback(async (server: string): Promise<{ username: string; password: string } | null> => {
+  // Get stored refresh token
+  const getStoredToken = useCallback(async (server: string): Promise<{ email: string; refreshToken: string } | null> => {
     if (!NativeBiometric) {
       return null;
     }
@@ -128,16 +132,16 @@ export const useBiometricAuth = () => {
     try {
       const credentials = await NativeBiometric.getCredentials({ server });
       return {
-        username: credentials.username,
-        password: credentials.password,
+        email: credentials.username,
+        refreshToken: credentials.password, // This is actually the refresh token
       };
     } catch (error) {
-      console.error('Failed to get credentials:', error);
+      console.error('Failed to get stored token:', error);
       return null;
     }
   }, []);
 
-  const deleteCredentials = useCallback(async (server: string): Promise<boolean> => {
+  const deleteStoredToken = useCallback(async (server: string): Promise<boolean> => {
     if (!NativeBiometric) {
       return false;
     }
@@ -146,7 +150,21 @@ export const useBiometricAuth = () => {
       await NativeBiometric.deleteCredentials({ server });
       return true;
     } catch (error) {
-      console.error('Failed to delete credentials:', error);
+      console.error('Failed to delete stored token:', error);
+      return false;
+    }
+  }, []);
+
+  // Check if biometric credentials exist
+  const hasStoredCredentials = useCallback(async (server: string): Promise<boolean> => {
+    if (!NativeBiometric) {
+      return false;
+    }
+
+    try {
+      const credentials = await NativeBiometric.getCredentials({ server });
+      return !!credentials?.password;
+    } catch {
       return false;
     }
   }, []);
@@ -183,9 +201,10 @@ export const useBiometricAuth = () => {
   return {
     ...state,
     authenticate,
-    saveCredentials,
-    getCredentials,
-    deleteCredentials,
+    saveRefreshToken,
+    getStoredToken,
+    deleteStoredToken,
+    hasStoredCredentials,
     getBiometryLabel,
     getBiometryIcon,
   };
