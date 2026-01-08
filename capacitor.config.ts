@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.35a82236dd914113bd4bb9702c566baf',
-  appName: 'letsmoovy',
+  appId: 'com.letsmoovy.app',
+  appName: 'MOOVY',
   webDir: 'dist'
   // Für Entwicklung mit Live-Reload, diesen Block wieder aktivieren:
   // server: {
