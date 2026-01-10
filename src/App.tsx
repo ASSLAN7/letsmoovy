@@ -15,6 +15,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Imprint from "./pages/Imprint";
 import NotFound from "./pages/NotFound";
+import EmailPreview from "./pages/EmailPreview";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => {
             <Route path="/datenschutz" element={<Privacy />} />
             <Route path="/agb" element={<Terms />} />
             <Route path="/impressum" element={<Imprint />} />
+            <Route path="/email-preview" element={<EmailPreview />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
