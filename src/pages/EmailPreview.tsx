@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, KeyRound, Link2, MailCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// MOOVY Brand Colors (matching edge function)
+// MOOVY Brand Colors (Türkis - matching edge function)
 const brandColors = {
-  primary: "#6366f1",
-  primaryDark: "#4f46e5",
-  background: "#0f0f23",
-  cardBackground: "#1a1a2e",
+  primary: "#14b8a6", // Türkis
+  primaryDark: "#0d9488",
+  background: "#0f1114",
+  cardBackground: "#171b20",
   text: "#ffffff",
   textMuted: "#94a3b8",
-  accent: "#8b5cf6",
+  accent: "#2dd4bf", // Helles Türkis
 };
 
 // Base email template
@@ -286,7 +286,7 @@ const EmailPreview = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="bg-[#0f0f23] rounded-b-lg overflow-hidden">
+              <div className="bg-[#0f1114] rounded-b-lg overflow-hidden">
                 <iframe
                   srcDoc={currentTemplate.getHtml()}
                   title={`${currentTemplate.label} E-Mail Preview`}

@@ -9,15 +9,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// MOOVY Brand Colors
+// MOOVY Brand Colors (Türkis)
 const brandColors = {
-  primary: "#6366f1", // Indigo
-  primaryDark: "#4f46e5",
-  background: "#0f0f23",
-  cardBackground: "#1a1a2e",
+  primary: "#14b8a6", // Türkis
+  primaryDark: "#0d9488",
+  background: "#0f1114",
+  cardBackground: "#171b20",
   text: "#ffffff",
   textMuted: "#94a3b8",
-  accent: "#8b5cf6",
+  accent: "#2dd4bf", // Helles Türkis
 };
 
 // Generate MOOVY branded email template
