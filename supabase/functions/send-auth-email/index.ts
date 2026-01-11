@@ -301,14 +301,29 @@ const handler = async (req: Request): Promise<Response> => {
       html: htmlContent,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Resend response:", emailResponse);
+
+    // Resend returns { data, error }. If error is set, do NOT report success.
+    if ((emailResponse as any)?.error) {
+      return new Response(
+        JSON.stringify({ success: false, error: (emailResponse as any).error }),
+        {
+          status: 502,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        },
+      );
+    }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Email sent successfully" }),
+      JSON.stringify({
+        success: true,
+        message: "Email accepted",
+        id: (emailResponse as any)?.data?.id ?? null,
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      },
     );
   } catch (error: any) {
     console.error("Error in send-auth-email function:", error);
