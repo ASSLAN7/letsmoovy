@@ -35,35 +35,10 @@ function generateEmailTemplate(content: string, title: string): string {
     <tr>
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse;">
-          <!-- Header with Logo -->
+          <!-- Header -->
           <tr>
             <td align="center" style="padding: 30px 40px; background-color: ${brandColors.background}; border-radius: 16px 16px 0 0;">
-              <!-- MOOVY Logo with Icon and Text -->
-              <table role="presentation" style="border-collapse: collapse; margin: 0 auto;">
-                <tr>
-                  <td style="vertical-align: middle; padding-right: 12px;">
-                    <!-- Exact MOOVY Logo Icon -->
-                    <svg width="48" height="48" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" style="stop-color:${brandColors.accent};stop-opacity:1" />
-                          <stop offset="100%" style="stop-color:${brandColors.primary};stop-opacity:1" />
-                        </linearGradient>
-                      </defs>
-                      <!-- M swoosh shape - matching the actual logo -->
-                      <path d="M20,95 C15,70 20,40 35,25 C50,10 65,15 60,40 C55,60 40,70 35,55 C30,40 40,25 55,30 C70,35 75,25 85,15 C100,5 105,25 100,45 C95,65 80,70 75,55 C70,40 80,30 85,40" 
-                            fill="none" 
-                            stroke="url(#logoGradient)" 
-                            stroke-width="18" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round"/>
-                    </svg>
-                  </td>
-                  <td style="vertical-align: middle;">
-                    <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 28px; font-weight: 700; color: ${brandColors.primary}; letter-spacing: 1px;">MOOVY</span>
-                  </td>
-                </tr>
-              </table>
+              <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 32px; font-weight: 700; color: ${brandColors.primary}; letter-spacing: 2px;">MOOVY</span>
             </td>
           </tr>
           
