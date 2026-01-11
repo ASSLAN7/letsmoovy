@@ -6,6 +6,7 @@ import BookingDialog from "@/components/BookingDialog";
 import carSuv from "@/assets/car-suv.jpg";
 import carSedan from "@/assets/car-sedan.jpg";
 import carCompact from "@/assets/car-compact.jpg";
+import fordTransit from "@/assets/ford-transit-custom.jpg";
 
 const cars = [
   {
@@ -52,6 +53,21 @@ const cars = [
     available: true,
     coordinates: [6.7950, 51.2200] as [number, number],
     address: "Medienhafen, Düsseldorf",
+  },
+  {
+    id: 10,
+    name: "Ford Transit Custom",
+    category: "Transporter",
+    price: "0,45€/min",
+    priceDisplay: "0,45€",
+    unit: "/min",
+    image: fordTransit,
+    seats: 3,
+    range: "280 km",
+    battery: 95,
+    available: true,
+    coordinates: [13.3761, 52.5096] as [number, number],
+    address: "Potsdamer Platz 1, Berlin",
   },
 ];
 
