@@ -7,7 +7,7 @@ import BookingDialog from "@/components/BookingDialog";
 import carSuv from "@/assets/car-suv.jpg";
 import carSedan from "@/assets/car-sedan.jpg";
 import carCompact from "@/assets/car-compact.jpg";
-import fordTransitClean from "@/assets/ford-transit-clean.webp";
+import fordTransitClean from "@/assets/ford-transit-clean.jpg";
 
 const cars = [
   {
