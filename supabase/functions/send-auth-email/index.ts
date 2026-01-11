@@ -38,7 +38,12 @@ function generateEmailTemplate(content: string, title: string): string {
           <!-- Header with Logo -->
           <tr>
             <td align="center" style="padding: 30px 40px; background: linear-gradient(135deg, ${brandColors.primary} 0%, ${brandColors.accent} 100%); border-radius: 16px 16px 0 0;">
-              <img src="https://drive-moovy.de/app-icon-1024.png" alt="MOOVY Logo" width="80" height="80" style="display: block; margin: 0 auto 15px auto; border-radius: 16px;" />
+              <!-- Inline SVG Logo for maximum email compatibility -->
+              <div style="width: 80px; height: 80px; background-color: rgba(255,255,255,0.15); border-radius: 16px; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center;">
+                <svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <text x="50" y="75" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="white" text-anchor="middle">M</text>
+                </svg>
+              </div>
               <h1 style="margin: 0; font-size: 36px; font-weight: 800; color: ${brandColors.text}; letter-spacing: -1px;">
                 MOOVY
               </h1>
