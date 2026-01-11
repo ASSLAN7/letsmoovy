@@ -295,7 +295,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending ${email_action_type} email to ${email}`);
 
     const emailResponse = await resend.emails.send({
-      from: "MOOVY <noreply@resend.dev>",
+      from: "MOOVY <noreply@drive-moovy.de>",
       to: [email],
       subject: subject,
       html: htmlContent,
