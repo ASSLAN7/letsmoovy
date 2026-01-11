@@ -20,12 +20,13 @@ const brandColors = {
   textMuted: "#94a3b8",
 };
 
-// MOOVY Header HTML (text only)
+// MOOVY Header HTML with Gradient
 const getMoovyHeader = () => `
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${brandColors.background}; border-radius: 16px 16px 0 0; padding: 24px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, ${brandColors.background} 0%, #1a2027 50%, ${brandColors.background} 100%); border-radius: 16px 16px 0 0; padding: 32px; border-bottom: 2px solid ${brandColors.primary};">
     <tr>
       <td align="center">
-        <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 32px; font-weight: 700; color: ${brandColors.primary}; letter-spacing: 2px;">MOOVY</span>
+        <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 42px; font-weight: 800; background: linear-gradient(135deg, ${brandColors.accent} 0%, ${brandColors.primary} 50%, ${brandColors.primaryDark} 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: 4px;">MOOVY</span>
+        <p style="margin: 12px 0 0 0; font-size: 12px; color: ${brandColors.textMuted}; letter-spacing: 3px; text-transform: uppercase;">Mobilität neu gedacht</p>
       </td>
     </tr>
   </table>
