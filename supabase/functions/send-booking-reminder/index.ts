@@ -23,34 +23,12 @@ const brandColors = {
   info: "#3b82f6",
 };
 
-// MOOVY Logo Header HTML
+// MOOVY Header HTML (text only)
 const getMoovyHeader = () => `
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${brandColors.background}; border-radius: 16px 16px 0 0; padding: 24px;">
     <tr>
       <td align="center">
-        <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-          <tr>
-            <td style="vertical-align: middle; padding-right: 12px;">
-              <svg width="48" height="48" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:${brandColors.accent};stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:${brandColors.primary};stop-opacity:1" />
-                  </linearGradient>
-                </defs>
-                <path d="M20,95 C15,70 20,40 35,25 C50,10 65,15 60,40 C55,60 40,70 35,55 C30,40 40,25 55,30 C70,35 75,25 85,15 C100,5 105,25 100,45 C95,65 80,70 75,55 C70,40 80,30 85,40" 
-                      fill="none" 
-                      stroke="url(#logoGradient)" 
-                      stroke-width="18" 
-                      stroke-linecap="round" 
-                      stroke-linejoin="round"/>
-              </svg>
-            </td>
-            <td style="vertical-align: middle;">
-              <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 28px; font-weight: 700; color: ${brandColors.primary}; letter-spacing: 1px;">MOOVY</span>
-            </td>
-          </tr>
-        </table>
+        <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 32px; font-weight: 700; color: ${brandColors.primary}; letter-spacing: 2px;">MOOVY</span>
       </td>
     </tr>
   </table>
