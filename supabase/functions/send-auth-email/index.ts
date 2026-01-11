@@ -38,7 +38,7 @@ function generateEmailTemplate(content: string, title: string): string {
           <!-- Header with Logo -->
           <tr>
             <td align="center" style="padding: 30px 40px; background: linear-gradient(135deg, ${brandColors.primary} 0%, ${brandColors.accent} 100%); border-radius: 16px 16px 0 0;">
-              <img src="https://drive-moovy.de/app-icon-3d.png" alt="MOOVY Logo" width="80" height="80" style="display: block; margin: 0 auto 15px auto; border-radius: 16px;" />
+              <img src="https://drive-moovy.de/app-icon-1024.png" alt="MOOVY Logo" width="80" height="80" style="display: block; margin: 0 auto 15px auto; border-radius: 16px;" />
               <h1 style="margin: 0; font-size: 36px; font-weight: 800; color: ${brandColors.text}; letter-spacing: -1px;">
                 MOOVY
               </h1>
