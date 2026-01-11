@@ -11,6 +11,57 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// MOOVY Brand Colors
+const brandColors = {
+  primary: "#14b8a6",
+  primaryDark: "#0d9488",
+  accent: "#2dd4bf",
+  background: "#0f1114",
+  cardBackground: "#171b20",
+  text: "#ffffff",
+  textMuted: "#94a3b8",
+  info: "#3b82f6",
+};
+
+// MOOVY Logo Header HTML
+const getMoovyHeader = () => `
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${brandColors.background}; border-radius: 16px 16px 0 0; padding: 24px;">
+    <tr>
+      <td align="center">
+        <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+          <tr>
+            <td style="vertical-align: middle; padding-right: 10px;">
+              <svg width="44" height="44" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 75 Q15 25, 45 25 Q60 25, 55 50 Q50 70, 35 65 Q25 60, 30 45 Q35 30, 50 35 Q70 40, 75 30 Q85 15, 90 35 Q95 55, 80 55 Q70 55, 75 40" 
+                      fill="none" stroke="${brandColors.primary}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </td>
+            <td style="vertical-align: middle;">
+              <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 28px; font-weight: 700; color: ${brandColors.primary}; letter-spacing: 1px;">MOOVY</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+`;
+
+// MOOVY Footer HTML
+const getMoovyFooter = () => `
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding: 24px;">
+    <tr>
+      <td align="center">
+        <p style="color: ${brandColors.textMuted}; font-size: 12px; margin: 0;">
+          © ${new Date().getFullYear()} MOOVY. Alle Rechte vorbehalten.
+        </p>
+        <p style="color: ${brandColors.textMuted}; font-size: 12px; margin: 8px 0 0 0;">
+          Diese E-Mail wurde automatisch generiert. Bitte nicht antworten.
+        </p>
+      </td>
+    </tr>
+  </table>
+`;
+
 const formatDateTime = (isoString: string): string => {
   const date = new Date(isoString);
   return date.toLocaleString('de-DE', {
@@ -40,9 +91,9 @@ const sendReminderEmail = async (
       Authorization: `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: "EV Carsharing <onboarding@resend.dev>",
+      from: "MOOVY <noreply@drive-moovy.de>",
       to: [email],
-      subject: `Erinnerung: Deine Buchung startet in 1 Stunde - ${vehicleName}`,
+      subject: `⏰ Erinnerung: Deine Buchung startet in 1 Stunde - ${vehicleName}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -50,39 +101,42 @@ const sendReminderEmail = async (
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
           </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
+          <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: ${brandColors.background};">
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
               <tr>
                 <td>
-                  <!-- Header -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 16px 16px 0 0; padding: 32px;">
+                  <!-- Header with MOOVY Logo -->
+                  ${getMoovyHeader()}
+                  
+                  <!-- Reminder Banner -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, ${brandColors.info} 0%, #2563eb 100%); padding: 24px;">
                     <tr>
                       <td align="center">
                         <p style="color: rgba(255,255,255,0.9); margin: 0 0 8px 0; font-size: 14px;">⏰ Erinnerung</p>
-                        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">Deine Fahrt startet bald!</h1>
+                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">Deine Fahrt startet bald!</h1>
                       </td>
                     </tr>
                   </table>
                   
                   <!-- Content -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="background: white; padding: 32px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background: ${brandColors.cardBackground}; padding: 32px; border-radius: 0 0 16px 16px;">
                     <tr>
                       <td>
-                        <p style="color: #374151; font-size: 16px; margin: 0 0 24px 0;">
+                        <p style="color: ${brandColors.text}; font-size: 16px; margin: 0 0 24px 0;">
                           Hallo ${userName || 'Kunde'},
                         </p>
-                        <p style="color: #374151; font-size: 16px; margin: 0 0 24px 0;">
+                        <p style="color: ${brandColors.textMuted}; font-size: 16px; margin: 0 0 24px 0;">
                           In etwa einer Stunde beginnt deine Buchung. Hier sind die Details:
                         </p>
                         
                         <!-- Vehicle Card -->
-                        <table width="100%" cellpadding="0" cellspacing="0" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
                           <tr>
                             <td>
-                              <h2 style="color: #111827; margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">
+                              <h2 style="color: ${brandColors.text}; margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">
                                 ${vehicleName}
                               </h2>
-                              <p style="color: #6b7280; margin: 0; font-size: 14px;">${vehicleCategory}</p>
+                              <p style="color: ${brandColors.textMuted}; margin: 0; font-size: 14px;">${vehicleCategory}</p>
                             </td>
                           </tr>
                         </table>
@@ -90,47 +144,39 @@ const sendReminderEmail = async (
                         <!-- Details -->
                         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
                           <tr>
-                            <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-                              <strong style="color: #374151;">🕐 Start:</strong>
-                              <span style="color: #2563eb; float: right; font-weight: 600;">${formatDateTime(startTime)}</span>
+                            <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                              <strong style="color: ${brandColors.text};">🕐 Start:</strong>
+                              <span style="color: ${brandColors.info}; float: right; font-weight: 600;">${formatDateTime(startTime)}</span>
                             </td>
                           </tr>
                           <tr>
-                            <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-                              <strong style="color: #374151;">📍 Abholort:</strong>
-                              <span style="color: #6b7280; float: right;">${pickupAddress}</span>
+                            <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                              <strong style="color: ${brandColors.text};">📍 Abholort:</strong>
+                              <span style="color: ${brandColors.textMuted}; float: right;">${pickupAddress}</span>
                             </td>
                           </tr>
                         </table>
                         
                         <!-- CTA -->
-                        <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, ${brandColors.primary} 0%, ${brandColors.accent} 100%); border-radius: 12px; padding: 20px; text-align: center;">
                           <tr>
                             <td>
                               <p style="color: white; margin: 0; font-size: 16px; font-weight: 600;">
-                                Vergiss nicht, Fotos bei der Abholung zu machen!
+                                📸 Vergiss nicht, Fotos bei der Abholung zu machen!
                               </p>
                             </td>
                           </tr>
                         </table>
                         
-                        <p style="color: #6b7280; font-size: 14px; margin: 24px 0 0 0; text-align: center;">
-                          Wir wünschen dir eine gute Fahrt!
+                        <p style="color: ${brandColors.textMuted}; font-size: 14px; margin: 24px 0 0 0; text-align: center;">
+                          Wir wünschen dir eine gute Fahrt! 🚗
                         </p>
                       </td>
                     </tr>
                   </table>
                   
                   <!-- Footer -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="padding: 24px;">
-                    <tr>
-                      <td align="center">
-                        <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                          2025 EV Carsharing. Alle Rechte vorbehalten.
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
+                  ${getMoovyFooter()}
                 </td>
               </tr>
             </table>
