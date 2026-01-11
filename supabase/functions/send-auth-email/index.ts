@@ -39,22 +39,21 @@ function generateEmailTemplate(content: string, title: string): string {
           <tr>
             <td align="center" style="padding: 30px 40px; background-color: ${brandColors.background}; border-radius: 16px 16px 0 0;">
               <!-- MOOVY Logo with Icon and Text -->
-              <table role="presentation" style="border-collapse: collapse;">
+              <table role="presentation" style="border-collapse: collapse; margin: 0 auto;">
                 <tr>
-                  <td style="vertical-align: middle; padding-right: 12px;">
-                    <!-- Stylized M Icon -->
-                    <svg width="48" height="48" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20 80 C20 35, 35 20, 50 50 C55 60, 60 55, 65 45 C75 25, 85 30, 85 45 C85 55, 80 60, 75 55 C70 50, 68 52, 65 58 C55 80, 45 85, 35 60 C30 48, 25 50, 20 80 Z" fill="${brandColors.primary}" stroke="${brandColors.accent}" stroke-width="2"/>
+                  <td style="vertical-align: middle; padding-right: 10px;">
+                    <!-- Stylized M Icon matching the actual logo -->
+                    <svg width="44" height="44" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <!-- Main swoosh shape -->
+                      <path d="M15 75 Q15 25, 45 25 Q60 25, 55 50 Q50 70, 35 65 Q25 60, 30 45 Q35 30, 50 35 Q70 40, 75 30 Q85 15, 90 35 Q95 55, 80 55 Q70 55, 75 40" 
+                            fill="none" stroke="${brandColors.primary}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </td>
                   <td style="vertical-align: middle;">
-                    <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 32px; font-weight: 800; color: ${brandColors.primary}; letter-spacing: 2px;">MOOVY</span>
+                    <span style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 28px; font-weight: 700; color: ${brandColors.primary}; letter-spacing: 1px;">MOOVY</span>
                   </td>
                 </tr>
               </table>
-              <p style="margin: 12px 0 0 0; font-size: 14px; color: ${brandColors.textMuted}; letter-spacing: 2px; text-transform: uppercase;">
-                Premium Carsharing
-              </p>
             </td>
           </tr>
           
