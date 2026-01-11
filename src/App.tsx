@@ -16,6 +16,7 @@ import Terms from "./pages/Terms";
 import Imprint from "./pages/Imprint";
 import NotFound from "./pages/NotFound";
 import EmailPreview from "./pages/EmailPreview";
+import Download from "./pages/Download";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => {
             <Route path="/agb" element={<Terms />} />
             <Route path="/impressum" element={<Imprint />} />
             <Route path="/email-preview" element={<EmailPreview />} />
+            <Route path="/download" element={<Download />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

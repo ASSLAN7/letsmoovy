@@ -10,7 +10,7 @@ const Footer = () => {
       { label: "Fahrzeuge", href: "#cars" },
       { label: "Preise", href: "#pricing" },
       { label: "Standorte", href: "#locations" },
-      { label: "App herunterladen", href: "#" },
+      { label: "App herunterladen", href: "/download" },
     ],
     company: [
       { label: "Über uns", href: "#" },
