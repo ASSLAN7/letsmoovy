@@ -41,12 +41,22 @@ function generateEmailTemplate(content: string, title: string): string {
               <!-- MOOVY Logo with Icon and Text -->
               <table role="presentation" style="border-collapse: collapse; margin: 0 auto;">
                 <tr>
-                  <td style="vertical-align: middle; padding-right: 10px;">
-                    <!-- Stylized M Icon matching the actual logo -->
-                    <svg width="44" height="44" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                      <!-- Main swoosh shape -->
-                      <path d="M15 75 Q15 25, 45 25 Q60 25, 55 50 Q50 70, 35 65 Q25 60, 30 45 Q35 30, 50 35 Q70 40, 75 30 Q85 15, 90 35 Q95 55, 80 55 Q70 55, 75 40" 
-                            fill="none" stroke="${brandColors.primary}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+                  <td style="vertical-align: middle; padding-right: 12px;">
+                    <!-- Exact MOOVY Logo Icon -->
+                    <svg width="48" height="48" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" style="stop-color:${brandColors.accent};stop-opacity:1" />
+                          <stop offset="100%" style="stop-color:${brandColors.primary};stop-opacity:1" />
+                        </linearGradient>
+                      </defs>
+                      <!-- M swoosh shape - matching the actual logo -->
+                      <path d="M20,95 C15,70 20,40 35,25 C50,10 65,15 60,40 C55,60 40,70 35,55 C30,40 40,25 55,30 C70,35 75,25 85,15 C100,5 105,25 100,45 C95,65 80,70 75,55 C70,40 80,30 85,40" 
+                            fill="none" 
+                            stroke="url(#logoGradient)" 
+                            stroke-width="18" 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round"/>
                     </svg>
                   </td>
                   <td style="vertical-align: middle;">
