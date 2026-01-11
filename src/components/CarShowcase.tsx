@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Zap, Users, Battery } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BookingDialog from "@/components/BookingDialog";
-import BrandedVehicleImage from "@/components/BrandedVehicleImage";
+
 import carSuv from "@/assets/car-suv.jpg";
 import carSedan from "@/assets/car-sedan.jpg";
 import carCompact from "@/assets/car-compact.jpg";
@@ -69,7 +69,6 @@ const cars = [
     available: true,
     coordinates: [13.3761, 52.5096] as [number, number],
     address: "Potsdamer Platz 1, Berlin",
-    useBranding: true,
   },
 ];
 
@@ -115,19 +114,11 @@ const CarShowcase = () => {
             >
               {/* Image */}
               <div className="relative h-48 overflow-hidden">
-                {'useBranding' in car && car.useBranding ? (
-                  <BrandedVehicleImage
-                    src={car.image}
-                    alt={car.name}
-                    className="w-full h-full group-hover:scale-110 transition-transform duration-700"
-                  />
-                ) : (
-                  <img
-                    src={car.image}
-                    alt={car.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                )}
+                <img
+                  src={car.image}
+                  alt={car.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
                 <div className="absolute top-4 right-4">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${
