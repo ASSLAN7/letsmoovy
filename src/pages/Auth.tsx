@@ -35,6 +35,7 @@ const Auth = () => {
   } = useBiometricAuth();
   
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   
@@ -123,7 +124,17 @@ const Auth = () => {
     setIsSubmitting(true);
     
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?reset=true`,
+        });
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('Passwort-Reset E-Mail gesendet! Bitte prüfe dein Postfach.');
+          setIsForgotPassword(false);
+        }
+      } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
@@ -252,12 +263,14 @@ const Auth = () => {
           </a>
           
           <h1 className="text-2xl font-bold text-foreground mb-2">
-            {isLogin ? 'Willkommen zurück' : 'Konto erstellen'}
+            {isForgotPassword ? 'Passwort zurücksetzen' : isLogin ? 'Willkommen zurück' : 'Konto erstellen'}
           </h1>
           <p className="text-muted-foreground mb-8">
-            {isLogin 
-              ? 'Melde dich an, um Fahrzeuge zu buchen' 
-              : 'Registriere dich für MOOVY Carsharing'}
+            {isForgotPassword
+              ? 'Gib deine E-Mail ein, um einen Reset-Link zu erhalten'
+              : isLogin 
+                ? 'Melde dich an, um Fahrzeuge zu buchen' 
+                : 'Registriere dich für MOOVY Carsharing'}
           </p>
 
           {/* Biometric Login Button - Show only on native with saved credentials */}
@@ -324,7 +337,7 @@ const Auth = () => {
 
           {/* Email/Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Name</Label>
                 <div className="relative">
@@ -363,41 +376,57 @@ const Auth = () => {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Passwort</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder={isLogin ? "••••••••" : "Min. 12 Zeichen, Groß/Klein, Zahl, Sonderzeichen"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                  aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Passwort</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(true);
+                        setErrors({});
+                      }}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Passwort vergessen?
+                    </button>
                   )}
-                </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={isLogin ? "••••••••" : "Min. 12 Zeichen, Groß/Klein, Zahl, Sonderzeichen"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-destructive">{errors.password}</p>
+                )}
+                {/* Show password strength indicator only during signup */}
+                {!isLogin && (
+                  <PasswordStrengthIndicator password={password} className="mt-3" />
+                )}
               </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-              {/* Show password strength indicator only during signup */}
-              {!isLogin && (
-                <PasswordStrengthIndicator password={password} className="mt-3" />
-              )}
-            </div>
+            )}
 
             <Button
               type="submit"
@@ -407,6 +436,8 @@ const Auth = () => {
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
+              ) : isForgotPassword ? (
+                'Reset-Link senden'
               ) : isLogin ? (
                 'Anmelden'
               ) : (
@@ -415,19 +446,51 @@ const Auth = () => {
             </Button>
           </form>
 
-          {/* Toggle Login/Signup */}
+          {/* Toggle Login/Signup/Forgot Password */}
           <p className="mt-6 text-center text-muted-foreground">
-            {isLogin ? 'Noch kein Konto?' : 'Bereits registriert?'}{' '}
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-              }}
-              className="text-primary hover:underline font-medium"
-            >
-              {isLogin ? 'Jetzt registrieren' : 'Anmelden'}
-            </button>
+            {isForgotPassword ? (
+              <>
+                Zurück zum{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setErrors({});
+                  }}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Login
+                </button>
+              </>
+            ) : isLogin ? (
+              <>
+                Noch kein Konto?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(false);
+                    setErrors({});
+                  }}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Jetzt registrieren
+                </button>
+              </>
+            ) : (
+              <>
+                Bereits registriert?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(true);
+                    setErrors({});
+                  }}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Anmelden
+                </button>
+              </>
+            )}
           </p>
         </motion.div>
       </div>
