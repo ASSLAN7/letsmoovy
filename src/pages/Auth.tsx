@@ -76,13 +76,19 @@ const Auth = () => {
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
-    
+
     try {
       emailSchema.parse(email);
     } catch (e) {
       if (e instanceof z.ZodError) {
         newErrors.email = e.errors[0].message;
       }
+    }
+
+    // Forgot password only needs a valid email.
+    if (isForgotPassword) {
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
     }
 
     // For login, use simple password validation
