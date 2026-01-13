@@ -58,6 +58,7 @@ import AdminCharts from '@/components/AdminCharts';
 import AdminSupportChat from '@/components/AdminSupportChat';
 import BookingPhotosDialog from '@/components/BookingPhotosDialog';
 import LaunchChecklist from '@/components/LaunchChecklist';
+import AdminUserVerification from '@/components/AdminUserVerification';
 
 interface Booking {
   id: string;
@@ -606,6 +607,10 @@ const Admin = () => {
                 <Headphones className="w-4 h-4 mr-2" />
                 Support
               </TabsTrigger>
+              <TabsTrigger value="verification" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Shield className="w-4 h-4 mr-2" />
+                Verifizierung
+              </TabsTrigger>
               <TabsTrigger value="launch" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Rocket className="w-4 h-4 mr-2" />
                 Launch
@@ -950,6 +955,11 @@ const Admin = () => {
             {/* Support Tab */}
             <TabsContent value="support">
               <AdminSupportChat />
+            </TabsContent>
+
+            {/* Verification Tab */}
+            <TabsContent value="verification">
+              <AdminUserVerification />
             </TabsContent>
 
             {/* Launch Tab */}
