@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { User, Camera, FileText, Calendar, Loader2, ArrowLeft } from 'lucide-react';
+import { User, Camera, FileText, Calendar, Loader2, ArrowLeft, Shield } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import DocumentVerification from '@/components/DocumentVerification';
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Name muss mindestens 2 Zeichen haben').max(100),
@@ -315,6 +316,11 @@ const Profile = () => {
               </form>
             </CardContent>
           </Card>
+
+          {/* Document Verification Section */}
+          {user && (
+            <DocumentVerification userId={user.id} />
+          )}
         </div>
       </main>
     </div>
