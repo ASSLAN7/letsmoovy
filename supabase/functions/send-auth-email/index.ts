@@ -238,9 +238,26 @@ const handler = async (req: Request): Promise<Response> => {
     const { email } = user;
     const { token_hash, redirect_to, email_action_type, site_url } = email_data;
 
-    // Build the confirmation URL
-    const baseUrl = site_url || redirect_to || "https://moovy.app";
-    const confirmationUrl = `${baseUrl}/auth/confirm?token_hash=${token_hash}&type=${email_action_type}`;
+    console.log("Email action type:", email_action_type);
+    console.log("Redirect to:", redirect_to);
+    console.log("Site URL:", site_url);
+    console.log("Token hash:", token_hash ? "present" : "missing");
+
+    // Build the confirmation URL - use redirect_to if provided, otherwise site_url
+    // For recovery, we want to redirect to our custom reset-password page
+    let confirmationUrl: string;
+    
+    if (email_action_type === "recovery" || email_action_type === "password_recovery") {
+      // For password recovery, redirect to our custom page
+      const baseUrl = redirect_to || site_url || "https://drive-moovy.de";
+      confirmationUrl = `${baseUrl.replace(/\/+$/, "")}?token_hash=${token_hash}&type=recovery`;
+    } else {
+      // For other types, use the standard auth confirm path
+      const baseUrl = site_url || redirect_to || "https://drive-moovy.de";
+      confirmationUrl = `${baseUrl.replace(/\/+$/, "")}/auth/confirm?token_hash=${token_hash}&type=${email_action_type}`;
+    }
+    
+    console.log("Generated confirmation URL:", confirmationUrl);
 
     let subject: string;
     let htmlContent: string;
